@@ -11,8 +11,8 @@ The pipeline calls the vision model through **Unity AI Gateway**: `ai_query('sys
 | **Request logging / tracing** | Every request and response kept for audit (image ID → model → reading) | Sample logged request/response |
 | **Model choice** | Swap or fall back to another vision model without changing pipeline code | Configuration diff |
 
-## Check on day one (known issues as of Sep–Oct 2026)
-- **Batch `ai_query` usage missing from Cost Analysis and budgets** (ES-2199366). A fix has been rolling out by region. Confirm the pipeline's usage shows up in the build workspace.
-- **One field report of `PERMISSION_DENIED`** when calling `ai_query` with `system.ai.*` syntax in a Unity Gateway v3 workspace (not reproduced internally). Test a single call before building the pipeline around it.
-- Verified 2026-10-06: `ai_query('system.ai.gpt-5-5', …)` succeeds from the serverless SQL warehouse. Still to confirm: the calls appear in Unity Gateway usage, and the exact privilege needed to call the service.
-- Newest models (GPT-6, Claude 5.x, Gemini 3.7+) currently return "not supported for batch inference" from `ai_query`.
+## Findings in the build workspace (2026-10-06)
+- **Usage is captured:** `system.ai_gateway.usage` records every pipeline call to `system.ai.gpt-5-5` (`invocation_metadata.source = 'AI_QUERY'`, requester, tokens, latency, status). See `evidence/07_gateway.md`; the known batch-tracking issue (ES-2199366) did not affect this workspace.
+- **Access is governed in UC:** `EXECUTE` on `system.ai` (held by `account users`) controls who can call the model service.
+- **Per-workload limits:** a project-owned model service (`databricks ai-gateway create-model-service`) can be created, but batch `ai_query` returns 404 for it, so rate limits and budgets for this workload are a platform-team configuration (DECISIONS D20).
+- **Batch support:** the newest models (GPT-6, Claude 5.x, Gemini 3.7+) return "not supported for batch inference" from `ai_query`.

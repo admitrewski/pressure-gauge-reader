@@ -1,0 +1,17 @@
+resources:
+  jobs:
+    gauge_refresh_job:
+      name: pressure-gauge-reader-refresh
+      description: Runs the gauge pipeline when new inspection images land, then refreshes the Lakebase serving copy.
+      trigger:
+        file_arrival:
+          url: /Volumes/${var.catalog}/${var.schema}/raw/images/
+      tasks:
+        - task_key: run_gauge_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.gauge_pipeline.id}
+        - task_key: refresh_lakebase_serving
+          depends_on:
+            - task_key: run_gauge_pipeline
+          pipeline_task:
+            pipeline_id: ${var.serving_sync_pipeline_id}

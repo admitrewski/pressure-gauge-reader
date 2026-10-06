@@ -1,0 +1,17 @@
+resources:
+  pipelines:
+    gauge_pipeline:
+      name: pressure-gauge-reader-pipeline
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      continuous: false
+      photon: true
+      libraries:
+        - glob:
+            include: ../src/pipeline/transformations/**
+      configuration:
+        gauge.vlm_model: system.ai.gpt-5-5
+        gauge.raw_path: /Volumes/${var.catalog}/${var.schema}/raw
+        gauge.review_threshold: "0.7"
+        gauge.overrides_history_table: ${var.catalog}.${var.schema}.lb_reading_overrides_history

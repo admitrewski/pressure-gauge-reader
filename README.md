@@ -68,11 +68,34 @@ Genie Agent on gold: "Which readings needed human intervention?" "Are any pressu
 
 ## Running it
 
-<!-- TODO: fill in once the bundle is built -->
+Built and running in the FE workspace `fevm-serverless-stable-kx6lwb` (catalog `serverless_stable_kx6lwb_catalog`, schema `pressure_gauge`).
+
+| Component | Where |
+|---|---|
+| Review app | https://gauge-review-7474650602871732.aws.databricksapps.com |
+| Pipeline | `pressure-gauge-reader-pipeline` (bundle resource `gauge_pipeline`) |
+| Refresh job | `pressure-gauge-reader-refresh` (file-arrival trigger on `raw/images/`) |
+| Lakebase | project `pressure-gauge-reader` (Postgres 17) |
+| Genie Agent | "Gauge Inspection Readings" |
+
+To rebuild from scratch:
 ```bash
-databricks bundle validate --profile <PROFILE>
-databricks bundle deploy -t dev --profile <PROFILE>
-databricks bundle run gauge_pipeline -t dev --profile <PROFILE>
+# 1. Data: schema, raw volume, images + metadata
+databricks schemas create pressure_gauge <catalog>
+databricks volumes create <catalog> pressure_gauge raw MANAGED
+databricks fs cp -r data/images dbfs:/Volumes/<catalog>/pressure_gauge/raw/images
+databricks fs cp data/metadata/gauge_metadata.csv dbfs:/Volumes/<catalog>/pressure_gauge/raw/metadata/
+# 2. Lakebase project, review table, Lakehouse Sync          -> src/lakebase/README.md
+# 3. Pipeline + refresh job
+databricks bundle deploy -t dev && databricks bundle run gauge_pipeline -t dev
+# 4. Synced table (gold -> Lakebase)                          -> src/lakebase/synced_table.json
+# 5. Genie Agent
+python src/genie/build_space.py <catalog>.pressure_gauge > /tmp/space.json
+databricks genie create-space <WAREHOUSE_ID> "$(cat /tmp/space.json)" --title "Gauge Inspection Readings"
+# 6. App, then Lakebase + UC grants                           -> app/README.md, src/governance/
+cd app && databricks bundle deploy && databricks bundle run app
+# 7. Evidence
+python src/setup/capture_evidence.py
 ```
 
 ## Evidence

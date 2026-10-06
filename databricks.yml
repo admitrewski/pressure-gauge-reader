@@ -1,5 +1,4 @@
 # Declarative Automation Bundle for the Pressure Gauge Reader.
-# Skeleton only: resources are added under resources/ as each stage is built.
 bundle:
   name: pressure-gauge-reader
 
@@ -9,11 +8,21 @@ include:
 variables:
   catalog:
     description: Unity Catalog catalog for all assets
+    default: serverless_stable_kx6lwb_catalog
   schema:
     description: Schema for pipeline tables
     default: pressure_gauge
+  serving_sync_pipeline_id:
+    description: Pipeline behind the Lakebase synced table (created by `databricks postgres create-synced-table`, see src/lakebase/)
+    default: fd47dc64-94cd-42b2-a4c1-efa4eeafd7b2
 
 targets:
   dev:
     mode: development
     default: true
+    workspace:
+      host: https://fevm-serverless-stable-kx6lwb.cloud.databricks.com
+
+sync:
+  exclude:
+    - data/images/**

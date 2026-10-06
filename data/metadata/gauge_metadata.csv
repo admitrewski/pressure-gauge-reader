@@ -1,0 +1,31 @@
+image_file,gauge_id,site,unit_area,captured_at,robot_id,normal_max_override
+gauge_001.jpg,PI-2101,Northbay Refinery,Hydrotreater,2026-09-29T07:34:00,RBT-N2,
+gauge_002.jpg,PI-6101,Ridgeway Terminal,Firewater,2026-10-02T06:28:00,RBT-R1,
+gauge_003.jpg,PI-6102,Ridgeway Terminal,Firewater,2026-09-30T07:26:00,RBT-R1,
+gauge_004.jpg,PI-1101,Northbay Refinery,Crude Distillation Unit,2026-09-29T18:04:00,RBT-N2,
+gauge_005.jpg,PI-3101,Northbay Refinery,Steam & Utilities,2026-09-28T06:27:00,RBT-N1,
+gauge_006.jpg,PI-6103,Ridgeway Terminal,Firewater,2026-10-01T07:11:00,RBT-R1,
+gauge_007.jpg,PI-4101,Northbay Refinery,Instrument Air,2026-10-01T18:28:00,RBT-N2,
+gauge_008.jpg,PI-4102,Northbay Refinery,Instrument Air,2026-10-05T19:43:00,RBT-N2,
+gauge_009.jpg,PI-3102,Northbay Refinery,Steam & Utilities,2026-09-28T07:29:00,RBT-N1,
+gauge_010.jpg,PI-1102,Northbay Refinery,Crude Distillation Unit,2026-10-04T18:35:00,RBT-N1,
+gauge_011.jpg,PI-2102,Northbay Refinery,Hydrotreater,2026-09-30T07:37:00,RBT-N1,
+gauge_012.jpg,PI-6104,Ridgeway Terminal,Firewater,2026-10-03T06:11:00,RBT-R1,
+gauge_013.jpg,PI-3103,Northbay Refinery,Steam & Utilities,2026-10-04T06:45:00,RBT-N1,175
+gauge_014.jpg,PI-1103,Northbay Refinery,Crude Distillation Unit,2026-10-03T19:43:00,RBT-N2,
+gauge_015.jpg,PI-4103,Northbay Refinery,Instrument Air,2026-09-28T19:08:00,RBT-N1,
+gauge_016.jpg,PI-3104,Northbay Refinery,Steam & Utilities,2026-09-29T18:10:00,RBT-N2,60
+gauge_017.jpg,PI-2103,Northbay Refinery,Hydrotreater,2026-10-02T19:13:00,RBT-N1,
+gauge_018.jpg,PI-4104,Northbay Refinery,Instrument Air,2026-10-01T06:05:00,RBT-N2,
+gauge_019.jpg,PI-1104,Northbay Refinery,Crude Distillation Unit,2026-10-01T18:10:00,RBT-N2,
+gauge_020.jpg,PI-2104,Northbay Refinery,Hydrotreater,2026-10-01T06:48:00,RBT-N2,
+gauge_021.jpg,PI-2105,Northbay Refinery,Hydrotreater,2026-10-02T19:21:00,RBT-N1,
+gauge_022.jpg,PI-6105,Ridgeway Terminal,Firewater,2026-10-03T06:47:00,RBT-R1,
+gauge_023.jpg,PI-4105,Northbay Refinery,Instrument Air,2026-10-03T07:25:00,RBT-N2,
+gauge_024.jpg,PI-1105,Northbay Refinery,Crude Distillation Unit,2026-10-02T07:17:00,RBT-N1,
+gauge_025.jpg,PI-3105,Northbay Refinery,Steam & Utilities,2026-09-30T06:20:00,RBT-N1,
+gauge_026.jpg,PI-5101,Ridgeway Terminal,Tank Farm,2026-10-05T18:34:00,RBT-R1,
+gauge_027.jpg,PI-5102,Ridgeway Terminal,Tank Farm,2026-10-01T19:47:00,RBT-R1,
+gauge_028.jpg,PI-4106,Northbay Refinery,Instrument Air,2026-09-28T07:45:00,RBT-N1,615
+gauge_029.jpg,PI-4107,Northbay Refinery,Instrument Air,2026-09-28T18:51:00,RBT-N1,615
+gauge_030.jpg,PI-4108,Northbay Refinery,Instrument Air,2026-10-02T06:27:00,RBT-N1,615
