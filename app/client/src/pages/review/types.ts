@@ -97,3 +97,7 @@ export function formatDateTime(v: string | null): string {
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? v : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
+
+export function imageUrl(imageId: string): string {
+  return `/api/files/files/raw?path=${encodeURIComponent(`images/${imageId}`)}`;
+}

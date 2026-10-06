@@ -2,7 +2,7 @@
 
 The business surface of the Pressure Gauge Reader.
 
-- **Review readings** (`client/src/pages/review/`): KPI strip (readings, needs review, above normal maximum, human correction rate, with data freshness), a queue filtered by *Needs review / High / Human-corrected / All*, and a detail dialog showing the gauge image (served from the UC volume), metadata and the AI reading with confidence and issues. Reviewers **confirm**, **override** (value + reason) or **mark unreadable**.
+- **Review readings** (`client/src/pages/review/`): KPI strip with data freshness, a status distribution bar for the whole round, and a resizable **split view**: the queue (gauge thumbnails, filters *Needs review / High / Human-corrected / All*) on the left and the selected reading on the right — photo from the UC volume, trusted vs AI reading, a confidence bar with the review threshold marked, image issues, and a decision banner once reviewed. Reviewers **confirm**, **override** (value + reason) or **mark unreadable**; keyboard shortcuts (↑/↓, C, O, U) and auto-advance to the next reading keep the queue moving. **Ask Genie** opens in a side panel without leaving the queue.
 - **Ask Genie** (`client/src/pages/genie/`): the "Gauge Inspection Readings" Genie Agent, on behalf of the signed-in user, with generated SQL shown on every answer.
 
 ## How it reads and writes

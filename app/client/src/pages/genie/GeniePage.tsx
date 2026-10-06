@@ -26,7 +26,7 @@ export function GeniePage() {
         </p>
       </div>
       <div className="h-[min(640px,70vh)] border rounded-lg overflow-hidden">
-        <GenieChat alias="default" />
+        <GenieChat alias="default" placeholder="e.g. Which image readings have needed human intervention?" />
       </div>
       <p className="text-xs text-muted-foreground">
         AI-generated from your data via Genie — expand the generated SQL on each answer and verify before acting.
