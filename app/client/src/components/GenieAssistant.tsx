@@ -2,11 +2,11 @@ import { Button, GenieChatInput, GenieChatMessageList, useGenieChat } from '@dat
 import { MessageSquareText, RotateCcw } from 'lucide-react';
 
 const EXAMPLE_QUESTIONS = [
-  'Which image readings have needed human intervention?',
-  'Are any pressure readings unexpectedly high?',
-  'How many readings are still waiting for review?',
-  'Which dials could not be read, and why?',
-  'Which site has the most unexpectedly high readings?',
+  'Which locations have the highest number of low-confidence readings?',
+  'Which image issues most often lead to low-confidence readings?',
+  'Which inspection robot captures the most readings that need review?',
+  'How does average AI confidence vary by process unit?',
+  'Which gauges are running closest to their normal operating limit?',
 ];
 
 interface Props {

@@ -24,10 +24,10 @@ def build(fq_schema: str) -> dict:
     columns = [
         dict(column_name="image_id", description=["Inspection image file the reading came from (one row per image)."], synonyms=["image", "photo", "inspection image"]),
         dict(column_name="gauge_id", description=["Pressure indicator tag from the asset register, e.g. PI-2101."], synonyms=["gauge", "tag", "instrument", "pressure indicator"], enable_entity_matching=True),
-        dict(column_name="site", description=["Plant or terminal where the gauge is installed."], synonyms=["plant", "facility", "location"], enable_format_assistance=True, enable_entity_matching=True),
+        dict(column_name="site", description=["Plant or terminal where the gauge is installed. Together with unit_area this is the gauge location."], synonyms=["plant", "facility", "location", "locations"], enable_format_assistance=True, enable_entity_matching=True),
         dict(column_name="unit_area", description=["Process unit or area of the site."], synonyms=["unit", "area", "process unit"], enable_format_assistance=True, enable_entity_matching=True),
         dict(column_name="captured_at", description=["When the inspection robot photographed the gauge."], synonyms=["inspection time", "date taken", "round time"]),
-        dict(column_name="robot_id", description=["Inspection robot that captured the image."], synonyms=["robot"], enable_entity_matching=True),
+        dict(column_name="robot_id", description=["Inspection robot that captured the image."], synonyms=["robot", "inspection robot"], enable_entity_matching=True),
         dict(column_name="final_value", description=["Trusted pressure reading: the reviewer's value if a human overrode it, otherwise the AI reading. NULL when the dial is unreadable."], synonyms=["reading", "pressure", "value", "pressure reading"]),
         dict(column_name="unit", description=["Pressure unit printed on the dial (bar, psi, kPa, MPa, kg/cm2, ...). Readings in different units must not be summed or averaged together."], synonyms=["units"]),
         dict(column_name="normal_max", description=["Normal operating maximum for the gauge: the asset-register limit if set, otherwise 75% of full scale."], synonyms=["operating limit", "normal maximum", "threshold"]),
@@ -37,7 +37,7 @@ def build(fq_schema: str) -> dict:
         dict(column_name="needs_review", description=["True when the reading is still waiting for a human reviewer."], synonyms=["pending review", "review queue", "awaiting review"]),
         dict(column_name="is_human_corrected", description=["True when a reviewer overrode the AI reading (human intervention)."], synonyms=["human intervention", "manual correction", "overridden", "corrected", "override"]),
         dict(column_name="ai_value", description=["Reading produced by the vision model before any human review."], synonyms=["AI reading", "model reading", "original reading"]),
-        dict(column_name="vlm_confidence", description=["Vision model's confidence in its reading, 0-1. Below 0.7 is sent to review."], synonyms=["confidence", "model confidence", "AI confidence"]),
+        dict(column_name="vlm_confidence", description=["Vision model's confidence in its reading, 0-1. Low confidence means below 0.7; those readings are sent to review."], synonyms=["confidence", "model confidence", "AI confidence", "low confidence", "low-confidence"]),
         dict(column_name="vlm_readable", description=["False when the vision model could not read the dial."], synonyms=["readable"]),
         dict(column_name="vlm_issues", description=["Image problems reported by the model, comma-separated (glare, dirty, blur, angled, small_in_frame, ...)."], synonyms=["issues", "image problems", "why unreadable"]),
         dict(column_name="human_value", description=["Value entered by the reviewer when overriding."], synonyms=["corrected value", "reviewer value"]),
@@ -54,23 +54,28 @@ def build(fq_schema: str) -> dict:
     ]
 
     sample_questions = [
-        "Which image readings have needed human intervention?",
-        "Are any pressure readings unexpectedly high?",
-        "How many readings are still waiting for review?",
-        "Which dials could not be read, and why?",
-        "Which site has the most unexpectedly high readings?",
+        "Which locations have the highest number of low-confidence readings?",
+        "Which image issues most often lead to low-confidence readings?",
+        "Which inspection robot captures the most readings that need review?",
+        "How does average AI confidence vary by process unit?",
+        "Which gauges are running closest to their normal operating limit?",
     ]
 
     example_sqls = [
+        ("Which locations have the highest number of low-confidence readings?",
+         f"SELECT {t}.site, {t}.unit_area, COUNT(*) AS low_confidence_readings, ROUND(AVG({t}.vlm_confidence), 2) AS avg_confidence "
+         f"FROM {table} WHERE {t}.vlm_confidence < 0.7 GROUP BY {t}.site, {t}.unit_area ORDER BY low_confidence_readings DESC"),
+        ("Which image issues most often lead to low-confidence readings?",
+         f"SELECT trim(issue) AS image_issue, COUNT(*) AS readings, SUM(CASE WHEN {t}.vlm_confidence < 0.7 THEN 1 ELSE 0 END) AS low_confidence, "
+         f"ROUND(AVG({t}.vlm_confidence), 2) AS avg_confidence FROM {table} LATERAL VIEW explode(split({t}.vlm_issues, ',')) x AS issue "
+         f"WHERE trim(issue) <> 'none' GROUP BY trim(issue) ORDER BY low_confidence DESC, avg_confidence"),
+        ("Which gauges are running closest to their normal operating limit?",
+         f"SELECT {t}.gauge_id, {t}.site, {t}.unit_area, {t}.final_value, {t}.unit, {t}.normal_max, "
+         f"ROUND({t}.final_value / {t}.normal_max, 2) AS share_of_limit FROM {table} WHERE {t}.final_value IS NOT NULL AND {t}.normal_max > 0 "
+         f"ORDER BY share_of_limit DESC LIMIT 10"),
         ("Which image readings have needed human intervention?",
          f"SELECT {t}.image_id, {t}.gauge_id, {t}.site, {t}.ai_value, {t}.human_value, {t}.unit, {t}.override_reason, {t}.reviewed_by, {t}.reviewed_at "
          f"FROM {table} WHERE {t}.is_human_corrected ORDER BY {t}.reviewed_at DESC"),
-        ("Are any pressure readings unexpectedly high?",
-         f"SELECT {t}.gauge_id, {t}.site, {t}.unit_area, {t}.final_value, {t}.unit, {t}.normal_max, {t}.pct_of_scale, {t}.captured_at "
-         f"FROM {table} WHERE {t}.reading_status = 'high' ORDER BY {t}.pct_of_scale DESC"),
-        ("What share of readings were corrected by a reviewer, by site?",
-         f"SELECT {t}.site, COUNT(*) AS readings, SUM(CASE WHEN {t}.is_human_corrected THEN 1 ELSE 0 END) AS corrected, "
-         f"ROUND(AVG(CASE WHEN {t}.is_human_corrected THEN 1.0 ELSE 0.0 END), 3) AS correction_rate FROM {table} GROUP BY {t}.site ORDER BY {t}.site"),
     ]
 
     benchmarks = [
