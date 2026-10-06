@@ -5,8 +5,8 @@ Context, in order of preference: column descriptions and synonyms ("override", "
 
 Benchmark questions (draft):
 - Which image readings needed human intervention?
-- Are any pressure readings unusually high?
-- Which site had the most high readings this week?
+- Are any pressure readings unexpectedly high?
+- Which site has the most unexpectedly high readings?
 - What % of readings were corrected by a reviewer, by site?
 - Which gauges have low vision-model confidence?
 - How many readings are still waiting for review?

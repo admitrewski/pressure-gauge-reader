@@ -32,7 +32,7 @@ def build(fq_schema: str) -> dict:
         dict(column_name="unit", description=["Pressure unit printed on the dial (bar, psi, kPa, MPa, kg/cm2, ...). Readings in different units must not be summed or averaged together."], synonyms=["units"]),
         dict(column_name="normal_max", description=["Normal operating maximum for the gauge: the asset-register limit if set, otherwise 75% of full scale."], synonyms=["operating limit", "normal maximum", "threshold"]),
         dict(column_name="pct_of_scale", description=["final_value as a fraction of the dial's full scale (0-1)."], synonyms=["percent of scale", "% of full scale"]),
-        dict(column_name="reading_status", description=["'high' = reading above normal_max (unusually high / excursion); 'normal'; 'unreadable' = no reading could be taken."], synonyms=["status", "unusually high", "excursion", "over limit", "abnormal"], enable_format_assistance=True),
+        dict(column_name="reading_status", description=["'high' = reading above normal_max (unexpectedly high reading / excursion); 'normal'; 'unreadable' = no reading could be taken."], synonyms=["status", "unexpectedly high", "unusually high", "excursion", "over limit", "abnormal"], enable_format_assistance=True),
         dict(column_name="review_status", description=["'auto_accepted' (AI reading trusted), 'pending_review' (waiting for a reviewer), 'confirmed' (reviewer agreed with AI), 'overridden' (reviewer corrected the value), 'marked_unreadable'."], synonyms=["review state"], enable_format_assistance=True),
         dict(column_name="needs_review", description=["True when the reading is still waiting for a human reviewer."], synonyms=["pending review", "review queue", "awaiting review"]),
         dict(column_name="is_human_corrected", description=["True when a reviewer overrode the AI reading (human intervention)."], synonyms=["human intervention", "manual correction", "overridden", "corrected", "override"]),
@@ -55,17 +55,17 @@ def build(fq_schema: str) -> dict:
 
     sample_questions = [
         "Which image readings have needed human intervention?",
-        "Are any pressure readings unusually high?",
+        "Are any pressure readings unexpectedly high?",
         "How many readings are still waiting for review?",
         "Which dials could not be read, and why?",
-        "Which site has the most high readings?",
+        "Which site has the most unexpectedly high readings?",
     ]
 
     example_sqls = [
         ("Which image readings have needed human intervention?",
          f"SELECT {t}.image_id, {t}.gauge_id, {t}.site, {t}.ai_value, {t}.human_value, {t}.unit, {t}.override_reason, {t}.reviewed_by, {t}.reviewed_at "
          f"FROM {table} WHERE {t}.is_human_corrected ORDER BY {t}.reviewed_at DESC"),
-        ("Are any pressure readings unusually high?",
+        ("Are any pressure readings unexpectedly high?",
          f"SELECT {t}.gauge_id, {t}.site, {t}.unit_area, {t}.final_value, {t}.unit, {t}.normal_max, {t}.pct_of_scale, {t}.captured_at "
          f"FROM {table} WHERE {t}.reading_status = 'high' ORDER BY {t}.pct_of_scale DESC"),
         ("What share of readings were corrected by a reviewer, by site?",

@@ -216,7 +216,9 @@ export function ReadingDetailPane({ reading, threshold, onSaved }: Props) {
           <div className="rounded-md border p-3">
             <p className="text-xs text-muted-foreground">Trusted reading</p>
             <p className="text-2xl font-semibold tabular-nums">{formatValue(reading.final_value, reading.unit)}</p>
-            <p className="text-xs text-muted-foreground">Normal max {formatValue(reading.normal_max, reading.unit)}</p>
+            <p className="text-xs text-muted-foreground">
+              Normal operating limit {formatValue(reading.normal_max, reading.unit)}
+            </p>
           </div>
           <div className="rounded-md border p-3">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -241,7 +243,8 @@ export function ReadingDetailPane({ reading, threshold, onSaved }: Props) {
           <dd>{reading.vlm_notes ?? '—'}</dd>
           <dt className="text-muted-foreground">Read by</dt>
           <dd>
-            {reading.model_name ?? 'vision model'} · {formatDateTime(reading.read_at)}
+            AI vision model ({reading.model_name?.replace('system.ai.', '') ?? 'unknown'}) ·{' '}
+            {formatDateTime(reading.read_at)}
           </dd>
         </dl>
         <p className="text-xs text-muted-foreground">AI readings can be wrong — check the photo before accepting.</p>

@@ -13,7 +13,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  GenieChat,
   Kbd,
   ResizableHandle,
   ResizablePanel,
@@ -37,11 +36,12 @@ import {
 } from '@databricks/appkit-ui/react';
 import { CheckCircle2, MessageSquareText, MousePointerClick, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { GenieAssistant } from '../../components/GenieAssistant';
 import { ReadingDetailPane } from './ReadingDetailPane';
 import { ConfidenceBadge, ReadingStatusBadge, ReviewStatusBadge } from './StatusBadges';
 import { formatDateTime, formatValue, imageUrl, normaliseReading, type Reading, type ReadingsResponse } from './types';
 
-type Filter = 'pending' | 'high' | 'corrected' | 'all';
+type Filter = 'pending' | 'high' | 'corrected' | 'auto' | 'all';
 
 const FILTERS: Record<Filter, { label: string; test: (r: Reading) => boolean; empty: string }> = {
   pending: {
@@ -50,14 +50,19 @@ const FILTERS: Record<Filter, { label: string; test: (r: Reading) => boolean; em
     empty: 'Every reading from the latest rounds is accepted or reviewed.',
   },
   high: {
-    label: 'High',
+    label: 'Unexpectedly high',
     test: (r) => r.reading_status === 'high',
-    empty: 'No readings are above their normal maximum.',
+    empty: 'No unexpectedly high readings: every gauge is within its normal operating limit.',
   },
   corrected: {
     label: 'Human-corrected',
     test: (r) => r.is_human_corrected,
     empty: 'No readings have been overridden yet.',
+  },
+  auto: {
+    label: 'Auto-accepted',
+    test: (r) => r.review_status === 'auto_accepted',
+    empty: 'No readings were accepted automatically — every reading needed a human check.',
   },
   all: {
     label: 'All readings',
@@ -122,13 +127,12 @@ function GenieSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
         <SheetHeader>
           <SheetTitle>Ask about these readings</SheetTitle>
           <SheetDescription>
-            Genie answers over the governed gold table, with your own permissions. Expand the SQL on each answer to
-            verify it. Try: “Which image readings have needed human intervention?” · “Are any pressure readings
-            unusually high?” · “Which dials could not be read, and why?”
+            Answers come from the governed inspection data, with your own permissions. Expand the SQL on each answer to
+            verify it.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 min-h-0 border rounded-lg overflow-hidden mx-4 mb-4">
-          <GenieChat alias="default" placeholder="e.g. Are any pressure readings unusually high?" />
+          <GenieAssistant persistInUrl={false} />
         </div>
       </SheetContent>
     </Sheet>
@@ -213,9 +217,7 @@ export function ReviewPage() {
     setSelectedId(next?.image_id ?? null);
     const verb =
       action === 'override' ? 'Override saved' : action === 'confirm' ? 'AI reading confirmed' : 'Marked unreadable';
-    setSavedMessage(
-      `${verb} for ${selected.gauge_id ?? selected.image_id} — synced to the lakehouse via Lakehouse Sync.`
-    );
+    setSavedMessage(`${verb} for ${selected.gauge_id ?? selected.image_id}.`);
     void load();
   };
 
@@ -384,12 +386,12 @@ export function ReviewPage() {
             <KpiCard
               title="Needs review"
               value={String(kpis.pending)}
-              detail={`Confidence below ${Math.round(threshold * 100)}%, unreadable or high`}
+              detail={`Confidence below ${Math.round(threshold * 100)}%, unreadable or unexpectedly high`}
             />
             <KpiCard
-              title="Above normal maximum"
+              title="Unexpectedly high readings"
               value={String(kpis.high)}
-              detail="Excursions against the gauge's operating limit"
+              detail="Above the gauge's normal operating limit"
             />
             <KpiCard
               title="Human correction rate"
@@ -401,8 +403,7 @@ export function ReviewPage() {
       </div>
       {data && <StatusBar readings={readings} />}
       <p className="text-xs text-muted-foreground">
-        {data?.lastReadAt ? `AI readings as of ${formatDateTime(data.lastReadAt)} · ` : ''}source:
-        gold_gauge_readings_final via Lakebase
+        {data?.lastReadAt ? `AI readings as of ${formatDateTime(data.lastReadAt)}` : ''}
       </p>
 
       {isMobile ? (

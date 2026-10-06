@@ -1,7 +1,11 @@
 import { Badge } from '@databricks/appkit-ui/react';
 import type { ReadingStatus, ReviewStatus } from './types';
 
-const READING_LABEL: Record<ReadingStatus, string> = { normal: 'Normal', high: 'High', unreadable: 'Unreadable' };
+const READING_LABEL: Record<ReadingStatus, string> = {
+  normal: 'Normal',
+  high: 'Unexpectedly high',
+  unreadable: 'Unreadable',
+};
 
 export function ReadingStatusBadge({ status }: { status: ReadingStatus }) {
   if (status === 'high')
