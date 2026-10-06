@@ -1,0 +1,19 @@
+# Declarative Automation Bundle for the Pressure Gauge Reader.
+# Skeleton only: resources are added under resources/ as each stage is built.
+bundle:
+  name: pressure-gauge-reader
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for all assets
+  schema:
+    description: Schema for pipeline tables
+    default: pressure_gauge
+
+targets:
+  dev:
+    mode: development
+    default: true

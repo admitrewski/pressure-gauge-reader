@@ -1,0 +1,14 @@
+# Databricks
+.databricks/
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+# Node (app)
+node_modules/
+dist/
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
