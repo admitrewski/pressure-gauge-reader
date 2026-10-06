@@ -1,6 +1,5 @@
-"""Builds deck/pressure-gauge-reader.pptx (16:9) in the house style of the reference architecture slide:
-DM Sans, white background, pale rounded containers, white rounded boxes with a thin blue outline and
-blue component names, black arrows, product symbols from deck/assets/.
+"""Builds deck/pressure-gauge-reader.pptx on the Databricks brand template (deck/assets/databricks_brand_template.pptx,
+exported from "[BRAND TEMPLATE] Databricks Corporate Slide 2025"): DM Sans, dark teal + Databricks red, brand layouts.
 
 Usage:  python deck/build_deck.py      (requires python-pptx)
 Numbers shown as [TBD] still need to be filled in from the impact model.
@@ -17,33 +16,69 @@ from pptx.util import Emu, Inches, Pt
 
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE / "assets"
+TEMPLATE = ASSETS / "databricks_brand_template.pptx"
 OUT = HERE / "pressure-gauge-reader.pptx"
 
 FONT = "DM Sans"
-BLUE = RGBColor(0x42, 0x85, 0xF4)
-BLACK = RGBColor(0x00, 0x00, 0x00)
-GREY = RGBColor(0x5F, 0x63, 0x68)
-RED = RGBColor(0xFF, 0x36, 0x21)
-PINK = "F4CCCC"
+NAVY = RGBColor(0x1B, 0x30, 0x37)      # brand dark teal (text, arrows)
+TEAL = RGBColor(0x61, 0x87, 0x93)      # muted teal (box outlines)
+RED = RGBColor(0xFF, 0x36, 0x21)       # Databricks red (component names, accents)
+GREY = RGBColor(0x5F, 0x6B, 0x70)
+
+# Brand layouts (master 1 of the template)
+L_TITLE, L_BASIC, L_2COL, L_3CARDS, L_CARD_RIGHT, L_CARD_LARGE, L_POWER_KICKER, L_POWER = 7, 1, 2, 4, 5, 6, 9, 10
 
 
-# ---------- helpers ----------
+# ---------- template helpers ----------
+def new_slide(prs, layout_idx):
+    return prs.slides.add_slide(prs.slide_masters[1].slide_layouts[layout_idx])
+
+
+def ph(slide, idx):
+    for p in slide.placeholders:
+        if p.placeholder_format.idx == idx:
+            return p
+    raise KeyError(idx)
+
+
+def set_text(slide, idx, text):
+    ph(slide, idx).text_frame.text = text
+
+
+def set_bullets(slide, idx, items, size=None):
+    tf = ph(slide, idx).text_frame
+    tf.text = items[0]
+    for it in items[1:]:
+        tf.add_paragraph().text = it
+    if size:
+        for p in tf.paragraphs:
+            for r in p.runs:
+                r.font.size = Pt(size)
+
+
+def drop(slide, idx):
+    el = ph(slide, idx)._element
+    el.getparent().remove(el)
+
+
+def notes(slide, text):
+    slide.notes_slide.notes_text_frame.text = text
+
+
+# ---------- drawing helpers (architecture / flow diagrams) ----------
 def _alpha(fill_fmt, hex_rgb, alpha_pct):
-    """Solid fill with transparency (python-pptx has no alpha API)."""
     fill_fmt.solid()
     fill_fmt.fore_color.rgb = RGBColor.from_string(hex_rgb)
     clr = fill_fmt._xPr.find(qn("a:solidFill")).find(qn("a:srgbClr"))
-    a = etree.SubElement(clr, qn("a:alpha"))
-    a.set("val", str(int(alpha_pct * 1000)))
+    etree.SubElement(clr, qn("a:alpha")).set("val", str(int(alpha_pct * 1000)))
 
 
-def _text(tf, runs, size=8, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE):
-    """runs: list of paragraphs; each paragraph is a list of (text, color, bold)."""
+def _text(tf, paras, size, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE):
     tf.word_wrap = True
     tf.vertical_anchor = anchor
     for attr in ("margin_left", "margin_right", "margin_top", "margin_bottom"):
-        setattr(tf, attr, Inches(0.04))
-    for i, para in enumerate(runs):
+        setattr(tf, attr, Inches(0.05))
+    for i, para in enumerate(paras):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.alignment = align
         for text, color, bold in para:
@@ -55,300 +90,274 @@ def _text(tf, runs, size=8, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE):
             r.font.color.rgb = color
 
 
-def container(slide, x, y, w, h):
-    s = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
-    s.adjustments[0] = 0.12
-    _alpha(s.fill, PINK, 25)
-    s.line.fill.background()
-    s.shadow.inherit = False
-    return s
+class Canvas:
+    """Draws in design units (a 10 x 5.625 grid) mapped onto a region of the 13.33 x 7.5 slide."""
 
+    def __init__(self, slide, ox, oy, scale):
+        self.s, self.ox, self.oy, self.k = slide, ox, oy, scale
 
-def box(slide, x, y, w, h, title, body=None, icon=None, size=8):
-    s = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
-    s.adjustments[0] = 0.16
-    _alpha(s.fill, "FFFFFF", 76)
-    s.line.color.rgb = BLUE
-    s.line.width = Emu(7150)
-    s.shadow.inherit = False
-    paras = [[(title, BLUE, False)]]
-    if body:
-        paras.append([(body, BLACK, False)])
-    _text(s.text_frame, paras, size=size)
-    if icon:
-        badge(slide, x + w - 0.16, y - 0.13, icon)
-    return s
+    def X(self, v):
+        return Inches(self.ox + v * self.k)
 
+    def Y(self, v):
+        return Inches(self.oy + v * self.k)
 
-def badge(slide, cx, cy, icon, d=0.3):
-    """Product symbol in a small white circle, straddling a box corner."""
-    c = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(cx), Inches(cy), Inches(d), Inches(d))
-    c.fill.solid()
-    c.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-    c.line.color.rgb = BLUE
-    c.line.width = Emu(7150)
-    c.shadow.inherit = False
-    pad = d * 0.18
-    slide.shapes.add_picture(str(ASSETS / f"icon_{icon}.png"), Inches(cx + pad), Inches(cy + pad), Inches(d - 2 * pad), Inches(d - 2 * pad))
+    def L(self, v):
+        return Inches(v * self.k)
 
+    def pt(self, v):
+        return v * self.k
 
-def label(slide, x, y, w, h, text, size=7, color=BLACK, align=PP_ALIGN.CENTER, italic=False):
-    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
-    _text(tb.text_frame, [[(text, color, False)]], size=size, align=align)
-    if italic:
+    def container(self, x, y, w, h, hex_fill, alpha):
+        c = self.s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, self.X(x), self.Y(y), self.L(w), self.L(h))
+        c.adjustments[0] = 0.08
+        _alpha(c.fill, hex_fill, alpha)
+        c.line.fill.background()
+        c.shadow.inherit = False
+        return c
+
+    def box(self, x, y, w, h, title, body=None, icon=None, size=8):
+        b = self.s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, self.X(x), self.Y(y), self.L(w), self.L(h))
+        b.adjustments[0] = 0.14
+        b.fill.solid()
+        b.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+        b.line.color.rgb = TEAL
+        b.line.width = Pt(0.75)
+        b.shadow.inherit = False
+        paras = [[(title, RED, True)]]
+        if body:
+            paras.append([(body, NAVY, False)])
+        _text(b.text_frame, paras, self.pt(size))
+        if icon:
+            self.badge(x + w - 0.16, y - 0.13, icon)
+        return b
+
+    def badge(self, x, y, icon, d=0.3):
+        c = self.s.shapes.add_shape(MSO_SHAPE.OVAL, self.X(x), self.Y(y), self.L(d), self.L(d))
+        c.fill.solid()
+        c.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+        c.line.color.rgb = TEAL
+        c.line.width = Pt(0.75)
+        c.shadow.inherit = False
+        pad = d * 0.18
+        self.s.shapes.add_picture(str(ASSETS / f"icon_{icon}.png"), self.X(x + pad), self.Y(y + pad), self.L(d - 2 * pad), self.L(d - 2 * pad))
+
+    def label(self, x, y, w, h, text, size=7, color=NAVY, italic=False, align=PP_ALIGN.CENTER):
+        tb = self.s.shapes.add_textbox(self.X(x), self.Y(y), self.L(w), self.L(h))
+        _text(tb.text_frame, [[(text, color, False)]], self.pt(size), align=align)
         for p in tb.text_frame.paragraphs:
             for r in p.runs:
-                r.font.italic = True
-    return tb
+                r.font.italic = italic
+        return tb
 
-
-def arrow(slide, x1, y1, x2, y2, both=False, dashed=False):
-    c = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, Inches(x1), Inches(y1), Inches(x2), Inches(y2))
-    c.line.color.rgb = BLACK
-    c.line.width = Pt(1)
-    ln = c.line._get_or_add_ln()
-    if dashed:
-        d = etree.SubElement(ln, qn("a:prstDash"))
-        d.set("val", "dash")
-    for tag, on in (("a:headEnd", both), ("a:tailEnd", True)):
-        e = etree.SubElement(ln, qn(tag))
-        e.set("type", "triangle" if on else "none")
-        e.set("w", "sm")
-        e.set("len", "sm")
-    return c
-
-
-def title(slide, text, size=28):
-    tb = slide.shapes.add_textbox(Inches(0.55), Inches(0.25), Inches(9.0), Inches(0.75))
-    _text(tb.text_frame, [[(text, BLACK, False)]], size=size, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP)
-
-
-def bullets(slide, x, y, w, h, items, size=12):
-    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
-    tf = tb.text_frame
-    tf.word_wrap = True
-    for i, it in enumerate(items):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        pPr = p._p.get_or_add_pPr()
-        pPr.set("marL", str(Inches(0.25)))
-        pPr.set("indent", str(-Inches(0.2)))
-        bu = etree.SubElement(pPr, qn("a:buChar"))
-        bu.set("char", "•")
-        r = p.add_run()
-        r.text = it
-        r.font.name = FONT
-        r.font.size = Pt(size)
-        r.font.color.rgb = BLACK
-        p.space_after = Pt(3)
-    return tb
-
-
-def notes(slide, text):
-    slide.notes_slide.notes_text_frame.text = text
-
-
-def logo(slide, x, y, size=0.38):
-    # The source image is 16:9 with the mark centred; crop to the mark.
-    pic = slide.shapes.add_picture(str(ASSETS / "databricks_logo.png"), Inches(x), Inches(y), Inches(size * 16 / 9), Inches(size))
-    pic.crop_left = pic.crop_right = 0.22
-    pic.width = Inches(size * 16 / 9 * 0.56)
-    return pic
+    def arrow(self, x1, y1, x2, y2, both=False, dashed=False):
+        c = self.s.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, self.X(x1), self.Y(y1), self.X(x2), self.Y(y2))
+        c.line.color.rgb = NAVY
+        c.line.width = Pt(1.25)
+        ln = c.line._get_or_add_ln()
+        if dashed:
+            etree.SubElement(ln, qn("a:prstDash")).set("val", "dash")
+        for tag, on in (("a:headEnd", both), ("a:tailEnd", True)):
+            e = etree.SubElement(ln, qn(tag))
+            e.set("type", "triangle" if on else "none")
+            e.set("w", "med")
+            e.set("len", "med")
 
 
 # ---------- slides ----------
 def slide_title(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    tb = s.shapes.add_textbox(Inches(0.7), Inches(1.6), Inches(8.6), Inches(1.2))
-    _text(tb.text_frame, [[("Pressure Gauge Reader", BLACK, False)]], size=40, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP)
-    tb = s.shapes.add_textbox(Inches(0.7), Inches(2.55), Inches(8.6), Inches(0.9))
-    _text(tb.text_frame, [[("From robot inspection photos to trusted, governed gauge readings in minutes — with a human in the loop", GREY, False)]],
-          size=16, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP)
-    tb = s.shapes.add_textbox(Inches(0.7), Inches(4.4), Inches(6), Inches(0.5))
-    _text(tb.text_frame, [[("Refinery operator rounds · Databricks Data Intelligence Platform", GREY, False)]], size=11, align=PP_ALIGN.LEFT)
-    logo(s, 8.6, 4.3, 0.6)
+    s = new_slide(prs, L_TITLE)
+    set_text(s, 0, "Pressure Gauge Reader")
+    set_text(s, 1, "AI-assisted gauge reading for refinery operator rounds")
+    set_text(s, 2, "Refinery operator rounds  |  October 2026")
     notes(s, "Open with the customer and the business persona: operations leadership at a refinery running robot inspection rounds.")
 
 
+def slide_outcome_statement(prs):
+    s = new_slide(prs, L_POWER_KICKER)
+    set_text(s, 1, "THE OUTCOME")
+    set_text(s, 0, "Every gauge read in minutes, not days")
+    notes(s, "Lead with the outcome for the executive sponsor.")
+
+
 def slide_outcome(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    title(s, "Every gauge read in minutes, not days")
-    tiles = [
-        ("[TBD] hrs / week", "of manual gauge transcription removed per site"),
-        ("< 5 min", "from robot photo to a trusted reading in the app"),
-        ("100%", "of excursions and low-confidence readings checked by a human"),
-    ]
-    for i, (big, small) in enumerate(tiles):
-        x = 0.55 + i * 3.05
-        b = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(1.35), Inches(2.85), Inches(1.6))
-        b.adjustments[0] = 0.1
-        _alpha(b.fill, PINK, 25)
-        b.line.fill.background()
-        b.shadow.inherit = False
-        _text(b.text_frame, [[(big, BLUE, False)], [(small, BLACK, False)]], size=13)
-        b.text_frame.paragraphs[0].runs[0].font.size = Pt(26)
-    bullets(s, 0.55, 3.25, 8.9, 2.0, [
-        "Inspection robots already photograph hundreds of analog gauges per round — but readings are still transcribed by hand or by a third-party vendor, outside the data platform",
-        "A vision model now reads every image as it lands, with a confidence score; only uncertain or out-of-limit readings go to a reviewer",
-        "Readings, corrections and excursions are governed in one place and can be queried in plain English",
-    ], size=12)
-    notes(s, "Lead with the outcome for the executive sponsor. Replace [TBD] with the impact model: rounds/day x gauges x minutes x loaded cost.")
+    s = new_slide(prs, L_3CARDS)
+    set_text(s, 0, "What changes for operations")
+    set_text(s, 7, "Robots already photograph the gauges — now every reading is trusted")
+    for hdr, body, (ih, ib) in [
+        ("[TBD] hrs / week", ["Manual gauge transcription removed per site", "Readings no longer outsourced to a third-party vendor"], (4, 1)),
+        ("< 5 minutes", ["From robot photo to a trusted reading in the review app", "Excursions surfaced the same shift"], (5, 2)),
+        ("100% checked", ["Every low-confidence, unreadable or unexpectedly high reading goes to a human", "Every correction audited"], (6, 3)),
+    ]:
+        set_text(s, ih, hdr)
+        set_bullets(s, ib, body)
+    notes(s, "Replace [TBD] with the impact model: rounds/day x gauges x minutes x loaded cost. '< 5 minutes' is from the build run (~4 minutes for 30 images).")
 
 
 def slide_personas(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    title(s, "Value for both sides of the business")
-    cols = [
-        ("Executive sponsor — VP Operations / HSE", [
-            "Fewer people in hazardous areas for routine rounds: [TBD] exposure hours avoided per year",
-            "Vendor dependency removed: [TBD] cost per image today vs. pay-per-token on the platform",
-            "Excursions surfaced the same shift, not at the next manual round",
-        ]),
-        ("Domain owner — Reliability / Maintenance lead", [
-            "One review queue, sorted by risk: low confidence, unreadable, above limit",
-            "Every correction audited (who, when, why) and fed back to the lakehouse",
-            "Ask questions in plain English: “Are any pressures unusually high?”",
-        ]),
-    ]
-    for i, (head, items) in enumerate(cols):
-        x = 0.55 + i * 4.55
-        c = container(s, x, 1.25, 4.35, 2.75)
-        tb = s.shapes.add_textbox(Inches(x + 0.2), Inches(1.4), Inches(4.0), Inches(0.5))
-        _text(tb.text_frame, [[(head, BLUE, False)]], size=14, align=PP_ALIGN.LEFT)
-        bullets(s, x + 0.2, 1.95, 3.95, 3.0, items, size=12)
+    s = new_slide(prs, L_2COL)
+    set_text(s, 0, "Value for both sides of the business")
+    set_text(s, 5, "Built for the executive sponsor and the domain owner")
+    set_text(s, 3, "Executive sponsor — VP Operations / HSE")
+    set_bullets(s, 1, [
+        "Fewer people in hazardous areas for routine rounds: [TBD] exposure hours avoided per year",
+        "Vendor dependency removed: [TBD] cost per image today vs. pay-per-token on the platform",
+        "Unexpectedly high pressures surfaced the same shift, not at the next manual round",
+    ])
+    set_text(s, 4, "Domain owner — Reliability / Maintenance lead")
+    set_bullets(s, 2, [
+        "One review queue, sorted by risk: low confidence, unreadable, unexpectedly high",
+        "Every correction audited (who, when, why) and fed back to the lakehouse",
+        "Ask in plain English: “Are any pressure readings unexpectedly high?”",
+    ])
     notes(s, "Frame value for both personas the AI roleplay will play: the business stakeholder and the technical/domain stakeholder.")
 
 
 def slide_architecture(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    title(s, "Architecture: one governed data journey")
+    s = new_slide(prs, L_CARD_LARGE)
+    set_text(s, 0, "Architecture")
+    set_text(s, 2, "One governed journey: robot photo → trusted reading → answer")
+    drop(s, 1)
+    c = Canvas(s, ox=0.85, oy=1.08, scale=1.2)   # design grid y 0.95..4.0 lands inside the brand card
 
     # Source: inspection site
-    container(s, 0.25, 1.0, 1.45, 2.9)
-    box(s, 0.4, 1.35, 1.15, 0.62, "Gauge images", "(JPG, per round)")
-    box(s, 0.4, 2.35, 1.15, 0.62, "Gauge metadata", "(CSV: tag, site, limits)")
-    badge(s, 0.4, 3.3, "internet_of_things", d=0.42)
-    label(s, 0.85, 3.3, 0.8, 0.42, "Robot inspection rounds", size=7, align=PP_ALIGN.LEFT)
+    c.container(0.25, 1.0, 1.45, 2.9, "EEF1F2", 100)
+    c.box(0.4, 1.35, 1.15, 0.62, "Gauge images", "JPG, per round")
+    c.box(0.4, 2.35, 1.15, 0.62, "Gauge metadata", "CSV: tag, site, limits")
+    c.badge(0.4, 3.3, "internet_of_things", d=0.42)
+    c.label(0.85, 3.3, 0.8, 0.42, "Robot inspection rounds", size=7, align=PP_ALIGN.LEFT)
 
     # Databricks platform
-    container(s, 1.9, 0.95, 6.7, 3.0)
-    box(s, 2.05, 1.45, 0.95, 1.5, "Lakeflow\nAuto Loader", "Incremental, exactly-once ingest from the UC Volume", icon="data_pipelines")
-    box(s, 3.2, 1.08, 1.25, 0.62, "Unity AI Gateway", "GPT-5.5 vision model", icon="access_connector")
-    box(s, 3.2, 2.1, 1.25, 0.85, "Bronze", "ai_query: reading, unit, scale, confidence", icon="unstructured_bronze")
-    box(s, 4.65, 2.1, 1.1, 0.85, "Silver", "Parsed readings + quality checks", icon="semi_structured_silver")
-    box(s, 5.95, 2.1, 1.1, 0.85, "Gold", "Readings + limits + review status", icon="delta_table")
-    box(s, 5.95, 1.08, 1.1, 0.62, "Genie Agent", "Ask in plain English", icon="ai")
-    box(s, 7.3, 2.1, 1.15, 0.85, "Lakebase", "Serving copy + review decisions", icon="data_warehouse")
-    box(s, 7.3, 1.08, 1.15, 0.62, "Databricks App", "Review queue (React)", icon="apps_services")
+    c.container(1.9, 0.95, 6.7, 3.0, "FFE4DF", 45)
+    c.box(2.05, 1.45, 0.95, 1.5, "Lakeflow Auto Loader", "Incremental, exactly-once ingest from the UC Volume", icon="data_pipelines")
+    c.box(3.2, 1.08, 1.25, 0.62, "Unity AI Gateway", "GPT-5.5 vision model", icon="access_connector")
+    c.box(3.2, 2.1, 1.25, 0.85, "Bronze", "ai_query: reading, unit, scale, confidence", icon="unstructured_bronze")
+    c.box(4.65, 2.1, 1.1, 0.85, "Silver", "Parsed readings + quality checks", icon="semi_structured_silver")
+    c.box(5.95, 2.1, 1.1, 0.85, "Gold", "Readings + limits + review status", icon="delta_table")
+    c.box(5.95, 1.08, 1.1, 0.62, "Genie Agent", "Ask in plain English", icon="ai")
+    c.box(7.3, 2.1, 1.15, 0.85, "Lakebase", "Serving copy + review decisions", icon="data_warehouse")
+    c.box(7.3, 1.08, 1.15, 0.62, "Databricks App", "Review queue (React)", icon="apps_services")
 
-    # Unity Catalog band
-    band = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2.05), Inches(3.15), Inches(5.6), Inches(0.5))
+    band = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, c.X(2.05), c.Y(3.15), c.L(6.4), c.L(0.5))
     band.adjustments[0] = 0.3
-    _alpha(band.fill, "FFFFFF", 76)
-    band.line.color.rgb = BLUE
-    band.line.width = Emu(7150)
+    band.fill.solid()
+    band.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    band.line.color.rgb = TEAL
+    band.line.width = Pt(0.75)
     band.shadow.inherit = False
-    _text(band.text_frame, [[("Unity Catalog  ", BLUE, False), ("explicit grants · lineage · raw volume · governed model access · audit", BLACK, False)]], size=8)
-    badge(s, 2.12, 3.25, "unity_catalog", d=0.3)
-    logo(s, 7.85, 3.25, 0.5)
+    _text(band.text_frame, [[("Unity Catalog   ", RED, True), ("explicit grants · lineage · raw volume · governed model access · audit", NAVY, False)]], c.pt(8))
+    c.badge(2.12, 3.25, "unity_catalog", d=0.3)
 
     # Reviewer (outside the platform)
-    box(s, 8.75, 1.08, 1.05, 0.62, "Reviewer", "confirm · override · unreadable", icon="human")
+    c.box(8.75, 1.08, 1.05, 0.62, "Reviewer", "confirm · override · unreadable", icon="human")
 
-    # Arrows
-    arrow(s, 1.55, 1.66, 2.05, 1.9)            # images -> autoloader
-    arrow(s, 1.55, 2.66, 2.05, 2.5)            # metadata -> autoloader
-    label(s, 1.5, 2.05, 0.6, 0.35, "UC Volume", size=6)
-    arrow(s, 3.0, 2.52, 3.2, 2.52)             # autoloader -> bronze
-    arrow(s, 3.82, 1.7, 3.82, 2.1)             # gateway -> bronze
-    arrow(s, 4.45, 2.52, 4.65, 2.52)           # bronze -> silver
-    arrow(s, 5.75, 2.52, 5.95, 2.52)           # silver -> gold
-    arrow(s, 6.5, 2.1, 6.5, 1.7)               # gold -> genie
-    arrow(s, 7.05, 1.39, 7.3, 1.39)            # genie -> app (embedded)
-    arrow(s, 7.05, 2.35, 7.3, 2.35)            # gold -> lakebase (synced table)
-    arrow(s, 7.3, 2.75, 7.05, 2.75, dashed=True)  # lakebase -> gold (Lakehouse Sync)
-    label(s, 6.78, 2.86, 0.8, 0.22, "Lakehouse Sync (CDC)", size=5.5, italic=True)
-    arrow(s, 7.87, 1.7, 7.87, 2.1, both=True)  # app <-> lakebase
-    arrow(s, 8.45, 1.39, 8.75, 1.39, both=True)  # app <-> reviewer
+    c.arrow(1.55, 1.66, 2.05, 1.9)
+    c.arrow(1.55, 2.66, 2.05, 2.5)
+    c.label(1.5, 2.05, 0.6, 0.35, "UC Volume", size=6)
+    c.arrow(3.0, 2.52, 3.2, 2.52)
+    c.arrow(3.82, 1.7, 3.82, 2.1)
+    c.arrow(4.45, 2.52, 4.65, 2.52)
+    c.arrow(5.75, 2.52, 5.95, 2.52)
+    c.arrow(6.5, 2.1, 6.5, 1.7)
+    c.arrow(7.05, 1.39, 7.3, 1.39)
+    c.arrow(7.05, 2.35, 7.3, 2.35)
+    c.arrow(7.3, 2.75, 7.05, 2.75, dashed=True)
+    c.label(6.78, 2.86, 0.8, 0.22, "Lakehouse Sync (CDC)", size=5.5, italic=True)
+    c.arrow(7.87, 1.7, 7.87, 2.1, both=True)
+    c.arrow(8.45, 1.39, 8.75, 1.39, both=True)
 
-    bullets(s, 0.55, 4.05, 9.0, 1.5, [
-        "Auto Loader reads each new image once; the vision model is called inside the streaming table via Unity AI Gateway (usage, cost and access governed)",
-        "Gold applies each gauge's operating limit and flags readings that need a human: low confidence, unreadable, or above limit",
-        "Reviewers work in a React app on Lakebase; decisions flow back to Delta through Lakehouse Sync and into gold",
-        "Genie answers plain-English questions over the governed gold table, on behalf of the signed-in user",
-    ], size=10.5)
+    c.label(0.25, 4.05, 9.55, 0.4,
+            "Each image is read once inside the streaming table · gold applies each gauge's operating limit · "
+            "reviewer decisions flow back to Delta through Lakehouse Sync · Genie runs with the signed-in user's permissions",
+            size=7, color=GREY)
     notes(s, "Walk left to right: land, read, refine, serve, review, ask. Point out the closed loop (dashed arrow) and the Unity Catalog band under everything.")
 
 
 def slide_demo(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    title(s, "Demo: one inspection round")
+    s = new_slide(prs, L_BASIC)
+    set_text(s, 0, "Demo: one inspection round")
+    set_text(s, 2, "Tell the problem · show the app and Genie · tell the value")
+    drop(s, 1)
+    c = Canvas(s, ox=0.85, oy=2.0, scale=1.17)
     steps = [
         ("1  Land", "30 gauge photos and the round's metadata arrive in the raw volume"),
-        ("2  Read", "Pipeline reads every dial once: value, unit, confidence, image issues"),
-        ("3  Triage", "Review queue: 9 readings need a human, 4 above limit, 1 unreadable"),
-        ("4  Correct", "Reviewer fixes a misread needle (5.0 → 1.0 bar) with a reason"),
+        ("2  Read", "The pipeline reads every dial once: value, unit, confidence, image issues"),
+        ("3  Triage", "Review queue: readings needing a human, unexpectedly high ones, one unreadable dial"),
+        ("4  Correct", "A reviewer fixes a misread needle (5.0 → 1.0 bar) with a reason"),
         ("5  Ask", "“Which readings have needed human intervention?” — Genie answers with SQL"),
     ]
     for i, (head, body) in enumerate(steps):
-        x = 0.4 + i * 1.88
-        box(s, x, 1.4, 1.72, 1.75, head, body, size=11)
+        x = 0.0 + i * 1.98
+        c.box(x, 0.2, 1.78, 1.9, head, body, size=12)
         if i < len(steps) - 1:
-            arrow(s, x + 1.72, 2.27, x + 1.88, 2.27)
-    bullets(s, 0.55, 3.5, 9.0, 1.6, [
-        "Tell: the problem and the outcome  ·  Show: the app and Genie  ·  Tell: what it means for the business",
-        "Everything shown runs on synthetic metadata and publicly licensed gauge photos",
-    ], size=12)
+            c.arrow(x + 1.78, 1.15, x + 1.98, 1.15)
+    c.label(0.0, 2.45, 9.7, 0.4, "Everything shown runs on synthetic metadata and publicly licensed gauge photos", size=9, color=GREY, align=PP_ALIGN.LEFT)
     notes(s, "Keep the live demo under 8 minutes. Have the PI-3102 correction ready as the human-in-the-loop moment.")
 
 
 def slide_trust(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    title(s, "Trust: governed AI with a human in the loop")
-    cols = [
-        ("Human in the loop", ["Confidence below 70%, unreadable dials and excursions always go to a reviewer",
-                               "Every decision is appended (never overwritten) and audited", "Human correction rate tracked as live accuracy"]),
+    s = new_slide(prs, L_3CARDS)
+    set_text(s, 0, "Governed AI with a human in the loop")
+    set_text(s, 7, "AI reads, people decide where it matters, the platform keeps the record")
+    for hdr, items, (ih, ib) in [
+        ("Human in the loop", ["Confidence below 70%, unreadable dials and unexpectedly high readings always go to a reviewer",
+                               "Decisions are appended, never overwritten", "Human correction rate tracked as live accuracy"], (4, 1)),
         ("Unity Catalog", ["Analysts see the gold table only; the app reads images read-only",
-                           "Lineage from raw image to the answer in Genie", "Genie runs with the user's own permissions"]),
+                           "Lineage from raw image to the answer in Genie", "Genie runs with the user's own permissions"], (5, 2)),
         ("Unity AI Gateway", ["Every model call attributed: requester, tokens, latency, status",
-                              "Model access governed by UC EXECUTE", "Swap or fall back models without pipeline changes"]),
-    ]
-    for i, (head, items) in enumerate(cols):
-        x = 0.4 + i * 3.1
-        container(s, x, 1.2, 2.95, 2.75)
-        tb = s.shapes.add_textbox(Inches(x + 0.15), Inches(1.35), Inches(2.7), Inches(0.45))
-        _text(tb.text_frame, [[(head, BLUE, False)]], size=14, align=PP_ALIGN.LEFT)
-        bullets(s, x + 0.1, 1.85, 2.75, 3.1, items, size=11)
+                              "Model access governed by UC EXECUTE", "Swap or fall back models without pipeline changes"], (6, 3)),
+    ]:
+        set_text(s, ih, hdr)
+        set_bullets(s, ib, items)
 
 
 def slide_decisions(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    title(s, "Decisions and trade-offs")
-    bullets(s, 0.55, 1.2, 9.0, 4.0, [
+    s = new_slide(prs, L_BASIC)
+    set_text(s, 0, "Decisions and trade-offs")
+    set_text(s, 2, "Why this approach and not another")
+    set_bullets(s, 1, [
         "Foundation vision model via ai_query, not a custom CNN: no labelled data or training; confidence-based review covers the gaps",
         "Model called inside the streaming table: each image read and billed once; reviewed readings never change on refresh",
-        "Lakebase for the review step: low-latency transactional writes; synced table stays read-only, decisions return via Lakehouse Sync",
+        "Lakebase for the review step: low-latency transactional writes; decisions return to Delta via Lakehouse Sync",
         "Snapshot sync for serving: gold is a materialized view; at ~120 images/day a snapshot takes seconds",
-        "“Unusually high” = above the gauge's operating limit (default 75% of full scale), so Genie never invents thresholds",
+        "“Unexpectedly high” = above the gauge's operating limit (default 75% of full scale), so Genie never invents thresholds",
         "GPT-5.5 chosen after testing 15 vision models: best accuracy among batch-capable models, with a confidence score that separates right from wrong",
-    ], size=12)
+    ], size=17)
 
 
 def slide_next(prs):
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    title(s, "Path to production")
-    bullets(s, 0.55, 1.2, 9.0, 4.0, [
-        "Connect the robot fleet platform's image export to the raw volume (file-arrival trigger already in place)",
+    s = new_slide(prs, L_CARD_RIGHT)
+    set_text(s, 0, "Path to production")
+    set_text(s, 3, "From one demo round to a site pilot")
+    set_bullets(s, 1, [
+        "Connect the robot fleet's image export to the raw volume (file-arrival trigger in place)",
         "Load real gauge tags and operating limits from the asset register",
-        "Pilot one site for [TBD] weeks; target human correction rate below [TBD]%",
-        "Alerting on excursions into the maintenance work-order system",
-        "Promote with Declarative Automation Bundles (dev → prod), named reviewer / analyst groups",
-    ], size=13)
+        "Alert on unexpectedly high readings into the maintenance work-order system",
+        "Promote with Declarative Automation Bundles (dev → prod) and named reviewer / analyst groups",
+    ], size=16)
+    set_bullets(s, 2, [
+        "Pilot success criteria",
+        "One site, [TBD] weeks",
+        "Human correction rate below [TBD]%",
+        "[TBD] hours of manual rounds removed",
+        "Every reading traceable from photo to answer",
+    ], size=16)
+
+
+def slide_close(prs):
+    s = new_slide(prs, L_POWER)
+    set_text(s, 0, "Every gauge read, every decision governed")
 
 
 def main():
-    prs = Presentation()
-    prs.slide_width, prs.slide_height = Emu(9144000), Emu(5143500)
-    for build in (slide_title, slide_outcome, slide_personas, slide_architecture, slide_demo, slide_trust, slide_decisions, slide_next):
+    prs = Presentation(str(TEMPLATE))
+    # Remove the template's sample slide(s); keep its masters and layouts.
+    sldIdLst = prs.slides._sldIdLst
+    for sldId in list(sldIdLst):
+        prs.part.drop_rel(sldId.rId)
+        sldIdLst.remove(sldId)
+    for build in (slide_title, slide_outcome_statement, slide_outcome, slide_personas, slide_architecture,
+                  slide_demo, slide_trust, slide_decisions, slide_next, slide_close):
         build(prs)
     prs.save(OUT)
     print("wrote", OUT)
