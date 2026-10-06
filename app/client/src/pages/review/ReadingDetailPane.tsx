@@ -25,8 +25,9 @@ import {
   Skeleton,
   Textarea,
 } from '@databricks/appkit-ui/react';
-import { CameraOff, CheckCircle2, PencilLine, ScanEye } from 'lucide-react';
+import { CameraOff, CheckCircle2, PencilLine, ScanEye, ZoomIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ImageZoomDialog } from '../../components/ImageZoomDialog';
 import { ReadingStatusBadge, ReviewStatusBadge } from './StatusBadges';
 import { formatDateTime, formatValue, imageUrl, type Reading, type ReviewAction } from './types';
 
@@ -112,6 +113,7 @@ function isTyping(target: EventTarget | null): boolean {
 
 export function ReadingDetailPane({ reading, threshold, onSaved }: Props) {
   const [mode, setMode] = useState<'view' | 'override'>('view');
+  const [zoomOpen, setZoomOpen] = useState(false);
   const [value, setValue] = useState(reading.ai_value !== null ? String(reading.ai_value) : '');
   const [reason, setReason] = useState(OVERRIDE_REASONS[0]);
   const [note, setNote] = useState('');
@@ -156,7 +158,7 @@ export function ReadingDetailPane({ reading, threshold, onSaved }: Props) {
   // Keyboard shortcuts for fast review: C confirm, O override, U unreadable.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (saving || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target) || mode === 'override') return;
+      if (saving || zoomOpen || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target) || mode === 'override') return;
       const k = e.key.toLowerCase();
       if (k === 'c' && reading.ai_value !== null) {
         e.preventDefault();
@@ -202,13 +204,23 @@ export function ReadingDetailPane({ reading, threshold, onSaved }: Props) {
               </EmptyHeader>
             </Empty>
           ) : (
-            <img
-              src={imageUrl(reading.image_id)}
-              alt={`Gauge ${reading.gauge_id ?? reading.image_id}`}
-              className={`w-full rounded-md object-contain max-h-[360px] ${imageLoaded ? '' : 'hidden'}`}
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageFailed(true)}
-            />
+            <button
+              type="button"
+              className={`group relative block w-full cursor-zoom-in ${imageLoaded ? '' : 'hidden'}`}
+              onClick={() => setZoomOpen(true)}
+              aria-label="Zoom into the gauge photo"
+            >
+              <img
+                src={imageUrl(reading.image_id)}
+                alt={`Gauge ${reading.gauge_id ?? reading.image_id}`}
+                className="w-full rounded-md object-contain max-h-[360px]"
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageFailed(true)}
+              />
+              <span className="absolute right-2 bottom-2 flex items-center gap-1 rounded-md bg-background/90 px-2 py-1 text-xs text-foreground shadow-sm opacity-80 group-hover:opacity-100">
+                <ZoomIn className="h-3.5 w-3.5" /> Zoom
+              </span>
+            </button>
           )}
         </div>
 
@@ -318,6 +330,14 @@ export function ReadingDetailPane({ reading, threshold, onSaved }: Props) {
           </Alert>
         )}
       </CardContent>
+      <ImageZoomDialog
+        src={imageUrl(reading.image_id)}
+        alt={`Gauge ${reading.gauge_id ?? reading.image_id}`}
+        title={`${reading.gauge_id ?? reading.image_id} — ${formatValue(reading.final_value, reading.unit)}`}
+        description={[reading.site, reading.unit_area].filter(Boolean).join(' · ')}
+        open={zoomOpen}
+        onOpenChange={setZoomOpen}
+      />
     </Card>
   );
 }

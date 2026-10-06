@@ -195,7 +195,12 @@ export function ReviewPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
-      if (genieOpen || (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable))) return;
+      if (
+        genieOpen ||
+        document.querySelector('[role="dialog"]') ||
+        (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable))
+      )
+        return;
       const idx = selected ? visible.findIndex((r) => r.image_id === selected.image_id) : -1;
       if ((e.key === 'ArrowDown' || e.key === 'j') && idx < visible.length - 1) {
         e.preventDefault();
@@ -259,7 +264,7 @@ export function ReviewPage() {
                 <TableHead>Gauge</TableHead>
                 <TableHead className="text-right">Reading</TableHead>
                 <TableHead>Confidence</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Pressure reading status</TableHead>
                 <TableHead>Review</TableHead>
               </TableRow>
             </TableHeader>
