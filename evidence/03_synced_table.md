@@ -1,6 +1,6 @@
 # Lakebase synced table (gold → Postgres)
 
-_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 15:33 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## Synced table status
 

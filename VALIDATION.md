@@ -1,6 +1,6 @@
 # Validation and run evidence
 
-Every stage below links to **text** evidence committed in `evidence/` (query results, logs, notebook outputs). Screenshots are supporting material only. Regenerate with `python src/setup/capture_evidence.py`.
+A summary of real run output is inlined in the README (*Evidence of execution*). Every stage below links to **text** evidence committed in `evidence/` (query results, logs, notebook outputs). Screenshots are supporting material only. Regenerate with `python src/setup/capture_evidence.py`.
 
 ## End-to-end journey
 - [x] One image traced from the volume → bronze → gold → Lakebase → app → override → gold, with Genie answering about it: `evidence/00_end_to_end_trace.md`
@@ -16,6 +16,7 @@ Every stage below links to **text** evidence committed in `evidence/` (query res
 
 ## 3. Lakebase: operational serving
 - [x] Synced table online; row count matches gold: `evidence/03_synced_table.md`
+- [x] Query results from the Lakebase serving tables (what the app reads): `evidence/03_lakebase_serving.md`
 - [x] Override round trip: app write → `review.reading_overrides` → Lakehouse Sync history → gold `is_human_corrected = true`: `evidence/03_writeback.md`
 
 ## 4. Gen AI: make it intelligent
@@ -28,6 +29,7 @@ Every stage below links to **text** evidence committed in `evidence/` (query res
 
 ## 6. Databricks App: surface it to the business
 - [x] App deployed (URL, deployment status, app log extract): `evidence/06_app_deploy.md`
+- [x] Live API responses from the deployed app (`/api/readings`, `/api/model-usage`, `/api/review-stats`): `evidence/06_app_api.md`
 
 ## 7. Unity Gateway: AI observability and control
 - [x] Model service grants, usage/cost for the pipeline's calls, rate limit and budget configuration, sample logged request: `evidence/07_gateway.md`

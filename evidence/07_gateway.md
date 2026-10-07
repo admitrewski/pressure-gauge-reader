@@ -1,6 +1,6 @@
 # Unity AI Gateway: observability and control of the vision model
 
-_Captured 2026-10-07 12:34 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 15:34 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## Usage of `system.ai.gpt-5-5` by the pipeline (system.ai_gateway.usage)
 

@@ -9,6 +9,7 @@ import json
 import pathlib
 import subprocess
 import time
+import urllib.request
 
 CATALOG, SCHEMA = "serverless_stable_kx6lwb_catalog", "pressure_gauge"
 S = f"{CATALOG}.{SCHEMA}"
@@ -199,6 +200,38 @@ def main():
         "name": app.get("name"), "url": app.get("url"), "app_status": app.get("app_status"), "compute_status": app.get("compute_status"),
         "active_deployment": {k: dep.get(k) for k in ("deployment_id", "status", "create_time")},
         "resources": app.get("resources"), "user_api_scopes": app.get("user_api_scopes")}, indent=1) + "\n```")])
+
+    # 6b. Lakebase serving tables, queried directly (what the app reads)
+    sv = psql("SELECT image_id, gauge_id, site, final_value, unit, round(vlm_confidence::numeric, 2) AS confidence, reading_status, review_status "
+              "FROM pressure_gauge.gauge_readings_serving ORDER BY (review_status = 'pending_review') DESC, vlm_confidence NULLS FIRST LIMIT 10", p)
+    sc = psql("SELECT count(*) AS rows, count(*) FILTER (WHERE needs_review) AS needs_review, "
+              "count(*) FILTER (WHERE reading_status = 'high') AS unexpectedly_high, count(*) FILTER (WHERE is_human_corrected) AS human_corrected "
+              "FROM pressure_gauge.gauge_readings_serving", p)
+    uv = psql("SELECT usage_date, model_service, requests, images_read, errors, input_tokens, output_tokens, est_cost_usd "
+              "FROM pressure_gauge.vlm_usage_serving ORDER BY usage_date", p)
+    write("03_lakebase_serving.md", "Lakebase serving tables: query results", [
+        ("Counts in `pressure_gauge.gauge_readings_serving` (synced copy of gold)", md_table(*sc)),
+        ("Readings needing review first, lowest confidence first (as the review queue shows them)", md_table(*sv)),
+        ("`pressure_gauge.vlm_usage_serving` (synced copy of gold_vlm_usage_daily)", md_table(*uv)),
+    ])
+
+    # 6c. Deployed app: live API responses
+    token = json.loads(subprocess.run(["databricks", "auth", "token", "--profile", p], capture_output=True, text=True, check=True).stdout)["access_token"]
+    def get(path):
+        req = urllib.request.Request(app["url"].rstrip("/") + path, headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.status, json.loads(r.read())
+    st_r, body_r = get("/api/readings")
+    pi = next(x for x in body_r["readings"] if x["image_id"] == TRACE_IMAGE)
+    st_u, body_u = get("/api/model-usage")
+    st_s, body_s = get("/api/review-stats")
+    keep = ("image_id", "gauge_id", "site", "ai_value", "final_value", "unit", "vlm_confidence", "reading_status", "review_status", "override_reason", "reviewed_at")
+    write("06_app_api.md", "Deployed app: live API responses", [
+        (f"GET /api/readings → HTTP {st_r}", f"{len(body_r['readings'])} readings · lastReadAt {body_r['lastReadAt']} · reviewConfidenceThreshold "
+         f"{body_r['reviewConfidenceThreshold']}\n\nThe corrected reading (`{TRACE_IMAGE}`):\n\n```json\n" + json.dumps({k: pi.get(k) for k in keep}, indent=1) + "\n```"),
+        (f"GET /api/model-usage → HTTP {st_u}", "```json\n" + json.dumps(body_u["days"], indent=1) + "\n```"),
+        (f"GET /api/review-stats → HTTP {st_s}", "```json\n" + json.dumps(body_s, indent=1) + "\n```"),
+    ])
 
     # 7. Unity Gateway
     use = sql("""SELECT date_trunc('hour', event_time) AS hour_utc, endpoint_name, invocation_metadata.source AS source, COUNT(*) AS requests,

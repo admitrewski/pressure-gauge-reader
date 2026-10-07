@@ -1,6 +1,6 @@
 # Auto Loader incremental processing
 
-_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 15:33 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## bronze_gauge_readings_ai output rows per completed update
 

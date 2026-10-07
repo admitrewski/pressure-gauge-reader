@@ -1,6 +1,6 @@
 # Lineage (system.access.table_lineage)
 
-_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 15:33 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## Edges touching the pressure_gauge schema
 
