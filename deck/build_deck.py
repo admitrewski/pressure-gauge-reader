@@ -394,23 +394,37 @@ def slide_outcome(prs):
              "Gauge readings are the first use case; the same photos also give leak, corrosion and damage findings at no extra capture cost.")
 
 
+def _lead_bold(slide, idx, color=RED):
+    """Style the first bullet of a placeholder as a bold 'measured on' line."""
+    p = ph(slide, idx).text_frame.paragraphs[0]
+    for r in p.runs:
+        r.font.bold = True
+        r.font.color.rgb = color
+
+
 def slide_personas(prs):
     s = new_slide(prs, L_2COL)
     set_text(s, 0, "Value for both sides of the business")
-    set_text(s, 5, "Built for the executive sponsor and the domain owner")
+    set_text(s, 5, "Each lever mapped to the numbers each leader is measured on")
     set_text(s, 3, "Executive sponsor — VP Operations / HSE")
     set_bullets(s, 1, [
-        "Robot rounds keep ~2,200 operator hours a year out of process areas (2 rounds a day × ~3 hours)",
-        "Vendor dependency removed: ~$15k a year on the platform vs. ~$180k in per-image fees",
-        "Unexpectedly high pressures surfaced the same shift, not at the next manual round",
-    ], size=16)
+        "Measured on: recordable injury rate (TRIR), process-safety events, plant availability, operating cost",
+        "Safety: ~2,200 operator hours a year kept out of process areas as robot rounds produce trusted readings",
+        "Availability: same-shift excursion warnings; one avoided hour of unplanned downtime ≈ $0.8M",
+        "Operating cost: ~$15k a year on the platform vs. ~$180k in per-image vendor fees",
+    ], size=15)
+    _lead_bold(s, 1)
     set_text(s, 4, "Domain owner — Reliability / Maintenance lead")
     set_bullets(s, 2, [
-        "One review queue, sorted by risk: low confidence, unreadable, unexpectedly high",
-        "Every correction audited (who, when, why) and fed back to the lakehouse",
-        "Ask in plain English: “Are any pressure readings unexpectedly high?”",
-    ], size=16)
-    notes(s, "Frame value for both personas the AI roleplay will play: the business stakeholder and the technical/domain stakeholder.")
+        "Measured on: unplanned downtime hours, mean time between failures (MTBF), maintenance backlog",
+        "Downtime and MTBF: excursions caught between rounds, with per-gauge trends to spot degradation early",
+        "Backlog: one review queue sorted by risk; unexpectedly high readings become work orders",
+        "Audit: every correction recorded (who, when, why) and answerable in Genie",
+    ], size=15)
+    _lead_bold(s, 2)
+    notes(s, "Frame value for both personas the AI roleplay will play. Tie each lever to the scorecard metric: for the VP Operations / HSE, "
+             "TRIR and process-safety events (exposure hours), plant availability (downtime avoided) and opex (vendor fees); for the reliability "
+             "lead, unplanned downtime hours, MTBF and maintenance backlog / PM compliance.")
 
 
 def slide_architecture(prs):
@@ -520,6 +534,129 @@ def slide_close(prs):
     set_text(s, 0, "Every photo read, every finding governed")
 
 
+MONO = "Courier New"
+EVIDENCE_NOTE = "Captured 2026-10-07 15:34 UTC from the build workspace by src/setup/capture_evidence.py · full output in evidence/ (index: VALIDATION.md)"
+
+
+def _mono(slide, x, y, w, h, heading, text, size=10.5):
+    """A heading plus a block of verbatim run output in a monospace font."""
+    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
+    tf = tb.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    for attr in ("margin_left", "margin_right", "margin_top", "margin_bottom"):
+        setattr(tf, attr, Inches(0.04))
+    p = tf.paragraphs[0]
+    r = p.add_run()
+    r.text = heading
+    r.font.name, r.font.size, r.font.bold, r.font.color.rgb = FONT, Pt(13), True, RED
+    p.space_after = Pt(4)
+    for line in text.strip("\n").split("\n"):
+        p = tf.add_paragraph()
+        p.space_after = Pt(0)
+        r = p.add_run()
+        r.text = line if line else " "
+        r.font.name, r.font.size, r.font.color.rgb = MONO, Pt(size), NAVY
+
+
+def _evidence_slide(prs, title, subtitle, blocks):
+    s = new_slide(prs, L_BASIC)
+    set_text(s, 0, title)
+    set_text(s, 2, subtitle)
+    drop(s, 1)
+    for b in blocks:
+        _mono(s, *b)
+    source_line(s, EVIDENCE_NOTE)
+    return s
+
+
+def slide_evidence_pipeline(prs):
+    _evidence_slide(prs, "Appendix A · Pipeline run", "Evidence: Lakeflow event log — 30 photos read once", [
+        (0.83, 1.95, 11.7, 2.9, "Pipeline update (serverless, triggered)", """
+update 177c2109-d3f2-49aa-846d-8b434c3b6861   COMPLETED   full_refresh=False
+started 2026-10-06 12:49:11 UTC   finished 12:51:52 UTC   duration 161 s
+
+flow                        type               output_rows
+bronze_gauge_readings_ai    streaming table    30   <- Auto Loader + ai_query: one model call per photo
+bronze_gauge_metadata       streaming table    30
+silver_gauge_readings       streaming table    30
+quarantine_vlm_errors       streaming table     0   <- no failed model calls
+gold_gauge_readings_final   materialized view  30
+Later updates incl. the refresh job (cause JOB_TASK): bronze_gauge_readings_ai = 0 rows each time -> no photo re-read"""),
+        (0.83, 4.85, 5.9, 1.9, "Data-quality expectations (event log)", """
+expectation            passed  failed
+vlm_call_succeeded       30      0
+response_parsed          30      0
+reading_within_scale     30      0
+unit_present             29      1  (warn, routed to review)
+gauge_id_present         30      0"""),
+        (6.9, 4.85, 5.7, 1.9, "Unity AI Gateway (system.ai_gateway.usage)", """
+service   system.ai.gpt-5-5   source AI_QUERY
+requests  33 (30 photos + 3 test calls)
+errors    0
+tokens    65,063 in / 31,717 out
+cost      $1.2688 at list price
+          = $0.0423 per photo"""),
+    ])
+
+
+def slide_evidence_serving(prs):
+    _evidence_slide(prs, "Appendix B · Governance and serving", "Evidence: Unity Catalog grants and Lakebase query results", [
+        (0.83, 1.95, 11.7, 1.95, "Unity Catalog: SHOW GRANTS and system.access.table_lineage", """
+gold_gauge_readings_final   account users          SELECT        (analysts: gold only)
+raw (volume)                app service principal  READ VOLUME   (photos read-only)
+bronze_gauge_readings_ai    no grants to analysts or the app
+system.ai model services    account users          EXECUTE
+lineage: files -> bronze -> silver -> gold;  lb_reading_overrides_history (Lakebase decisions) -> gold"""),
+        (0.83, 3.75, 11.7, 2.95, "Lakebase: query on pressure_gauge.gauge_readings_serving (what the app reads)", """
+ rows | needs_review | unexpectedly_high | human_corrected
+   30 |            9 |                 4 |               1
+
+ image_id      | gauge_id | site              | value | unit    | confidence | reading_status | review_status
+ gauge_004.jpg | PI-1101  | Northbay Refinery |       | unknown |       0.00 | unreadable     | pending_review
+ gauge_003.jpg | PI-6102  | Ridgeway Terminal |   190 | psi     |       0.42 | normal         | pending_review
+ gauge_030.jpg | PI-4108  | Northbay Refinery |   620 | kPa     |       0.62 | high           | pending_review
+ gauge_013.jpg | PI-3103  | Northbay Refinery |   187 | psi     |       0.86 | high           | pending_review"""),
+    ])
+
+
+def slide_evidence_writeback(prs):
+    _evidence_slide(prs, "Appendix C · Write-back and the app", "Evidence: one human correction end to end; the deployed app's live API", [
+        (0.83, 1.95, 11.7, 2.2, "Correction round trip: app -> Lakebase -> Delta -> gold -> Lakebase", """
+1 review.reading_overrides (Lakebase)   id 2 | gauge_009.jpg | override | human_value 1 | 2026-10-06 13:28:01 UTC
+  reason: "Read the wrong scale: needle tip is at ~1.0 bar; the AI read the counterweight end"
+2 Lakehouse Sync -> Delta history       insert | _pg_lsn 30799832 | 2026-10-06T13:28:01.399
+3 Pipeline (job run) -> gold            PI-3102 | ai_value 5.0 | final_value 1.0 bar | overridden | is_human_corrected true
+4 Snapshot sync -> serving table        gauge_009.jpg | ai_value 5 | final_value 1 | overridden"""),
+        (0.83, 4.2, 11.7, 2.5, "Deployed Databricks App: live API responses", """
+GET /api/readings      -> HTTP 200   30 readings · reviewConfidenceThreshold 0.7
+  { "gauge_id": "PI-3102", "ai_value": 5, "final_value": 1, "unit": "bar", "vlm_confidence": 0.86,
+    "review_status": "overridden", "override_reason": "Read the wrong scale: needle tip is at ~1.0 bar ..." }
+GET /api/model-usage   -> HTTP 200   { "requests": "33", "images_read": "30", "errors": "0", "est_cost_usd": 1.2688 }
+GET /api/review-stats  -> HTTP 200   { "decisions": 1, "images_reviewed": 1 }"""),
+    ])
+
+
+def slide_evidence_genie(prs):
+    _evidence_slide(prs, "Appendix D · Genie Agent", "Evidence: Genie's generated SQL and answers", [
+        (0.83, 1.95, 11.7, 2.9, "Q: Are any pressure readings unusually high?", """
+SELECT captured_at, image_id, gauge_id, site, unit_area, final_value, unit, normal_max,
+       (final_value - normal_max) AS above_normal_max
+FROM serverless_stable_kx6lwb_catalog.pressure_gauge.gold_gauge_readings_final
+WHERE reading_status = 'high' AND final_value IS NOT NULL AND normal_max IS NOT NULL
+ORDER BY above_normal_max DESC
+
+PI-3103 | Steam & Utilities | 187.0 psi | max 175.0 | +12.0      PI-4108 | Instrument Air | 620.0 kPa | max 615.0  | +5.0
+PI-3104 | Steam & Utilities |  68.0 psi | max 60.0  | +8.0       PI-2101 | Hydrotreater   |  20.0 bar | max 18.75  | +1.25
+Answer: "Yes - 4 pressure readings are above their normal maximums ... the largest excursion is PI-3103." """, 10),
+        (0.83, 4.75, 11.7, 1.95, "Q: Which image readings have needed human intervention?", """
+SELECT image_id, gauge_id, site, ai_value, human_value, unit, override_reason, reviewed_by, reviewed_at
+FROM ...gold_gauge_readings_final WHERE is_human_corrected = true ORDER BY reviewed_at DESC
+Answer: "1 image reading needed human intervention: gauge_009.jpg for gauge PI-3102 at Northbay Refinery.
+         The AI reading was 5.0 bar, the human-corrected reading was 1.0 bar ..." """, 10),
+    ])
+
+
 def main():
     prs = Presentation(str(TEMPLATE))
     # Remove the template's sample slide(s); keep its masters and layouts.
@@ -528,7 +665,8 @@ def main():
         prs.part.drop_rel(sldId.rId)
         sldIdLst.remove(sldId)
     for build in (slide_title, slide_outcome, slide_personas, slide_problem, slide_heard, slide_value_prop, slide_compare,
-                  slide_architecture, slide_decisions, slide_roadmap_pilot, slide_close):
+                  slide_architecture, slide_decisions, slide_roadmap_pilot, slide_close,
+                  slide_evidence_pipeline, slide_evidence_serving, slide_evidence_writeback, slide_evidence_genie):
         build(prs)
     prs.save(OUT)
     print("wrote", OUT)
