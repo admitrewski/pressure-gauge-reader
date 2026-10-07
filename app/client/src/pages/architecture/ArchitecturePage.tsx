@@ -26,7 +26,7 @@ const stageById = (id: StageId): Stage => STAGES.find((s) => s.id === id) ?? STA
 
 // Diagram design grid (SVG user units); the diagram scales to the card width.
 const W = 1200;
-const H = 560;
+const H = 515;
 
 interface Box {
   x: number;
@@ -76,9 +76,9 @@ function Component({
               {stage.step}
             </span>
           )}
-          <span className="text-sm font-semibold text-foreground leading-tight">{title}</span>
+          <span className="text-[15px] font-semibold text-foreground leading-tight">{title}</span>
         </div>
-        {sub && <div className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{sub}</div>}
+        {sub && <div className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">{sub}</div>}
       </button>
     </foreignObject>
   );
@@ -106,7 +106,7 @@ function Zone({ box, label, tone }: { box: Box; label: string; tone: 'site' | 'p
       <text
         x={box.x + 14}
         y={tone === 'pipeline' ? box.y + box.h - 10 : box.y + 22}
-        className={`text-[12px] font-semibold uppercase tracking-wider ${tone === 'platform' ? 'fill-brand-teal' : 'fill-muted-foreground'}`}
+        className={`text-[13px] font-semibold uppercase tracking-wider ${tone === 'platform' ? 'fill-brand-teal' : 'fill-muted-foreground'}`}
       >
         {label}
       </text>
@@ -141,7 +141,7 @@ function Arrow({
         markerStart={both ? 'url(#arrow-start)' : undefined}
       />
       {label && lx !== undefined && ly !== undefined && (
-        <text x={lx} y={ly} textAnchor="middle" className="fill-muted-foreground text-[11px]">
+        <text x={lx} y={ly} textAnchor="middle" className="fill-muted-foreground text-[12px]">
           {label}
         </text>
       )}
@@ -157,7 +157,7 @@ function ArchitectureDiagram({ selected, onSelect }: { selected: StageId; onSele
     <div className="overflow-x-auto">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full min-w-[960px] h-auto"
+        className="w-full min-w-[760px] h-auto"
         role="img"
         aria-label="Architecture diagram"
       >
@@ -184,7 +184,7 @@ function ArchitectureDiagram({ selected, onSelect }: { selected: StageId; onSele
 
         {/* Zones */}
         <Zone box={{ x: 10, y: 150, w: 160, h: 230 }} label="Inspection site" tone="site" />
-        <Zone box={{ x: 190, y: 10, w: 820, h: 540 }} label="Databricks Data Intelligence Platform" tone="platform" />
+        <Zone box={{ x: 190, y: 10, w: 820, h: 495 }} label="Databricks Data Intelligence Platform" tone="platform" />
         <Zone
           box={{ x: 210, y: 190, w: 525, h: 182 }}
           label="Lakeflow pipeline · runs when photos land"
@@ -199,9 +199,9 @@ function ArchitectureDiagram({ selected, onSelect }: { selected: StageId; onSele
             onClick={() => onSelect('land')}
             className="w-full h-full flex flex-col items-center justify-center gap-1.5 rounded-lg border bg-card p-2 text-center shadow-sm hover:border-brand-teal/70"
           >
-            <Bot className="h-6 w-6 text-brand-navy" />
-            <span className="text-sm font-semibold text-foreground">Inspection robots</span>
-            <span className="text-[11px] leading-snug text-muted-foreground">Gauge photos + round metadata</span>
+            <Bot className="h-7 w-7 text-brand-navy" />
+            <span className="text-[15px] font-semibold text-foreground">Inspection robots</span>
+            <span className="text-[12.5px] leading-snug text-muted-foreground">Photos + round metadata</span>
           </button>
         </foreignObject>
         <foreignObject x={1045} y={50} width={130} height={110}>
@@ -210,9 +210,9 @@ function ArchitectureDiagram({ selected, onSelect }: { selected: StageId; onSele
             onClick={() => onSelect('review')}
             className="w-full h-full flex flex-col items-center justify-center gap-1.5 rounded-lg border bg-card p-2 text-center shadow-sm hover:border-brand-teal/70"
           >
-            <Users className="h-6 w-6 text-brand-navy" />
-            <span className="text-sm font-semibold text-foreground">Reviewers & operations</span>
-            <span className="text-[11px] leading-snug text-muted-foreground">Review, correct, ask</span>
+            <Users className="h-7 w-7 text-brand-navy" />
+            <span className="text-[15px] font-semibold text-foreground">Reviewers & operations</span>
+            <span className="text-[12.5px] leading-snug text-muted-foreground">Review, correct, ask</span>
           </button>
         </foreignObject>
 
@@ -221,49 +221,34 @@ function ArchitectureDiagram({ selected, onSelect }: { selected: StageId; onSele
           'land',
           'Raw volume',
           { x: 225, y: 210, w: 150, h: 120 },
-          <>Photos + metadata CSV · a new file triggers the job</>
+          <>Photos + metadata CSV; new files start the job</>
         )}
         {C(
           'read',
           'Bronze · AI read',
           { x: 395, y: 210, w: 150, h: 120 },
-          <>Auto Loader → bronze · ai_query reads each photo once</>
+          <>Auto Loader + ai_query: each photo read once</>
         )}
-        {C(
-          'refine',
-          'Silver → Gold',
-          { x: 565, y: 210, w: 155, h: 120 },
-          <>Silver checks → gold: limits, review status, usage</>
-        )}
+        {C('refine', 'Silver → Gold', { x: 565, y: 210, w: 155, h: 120 }, <>Quality checks, limits, review status</>)}
 
         {/* Above the pipeline */}
         {C(
           'observe',
           'Unity AI Gateway',
-          { x: 395, y: 50, w: 150, h: 95 },
-          <>GPT-5.5 · every call logged and costed</>
+          { x: 395, y: 45, w: 150, h: 100 },
+          <>GPT-5.5; every call logged and costed</>
         )}
-        {C('ask', 'Genie Agent', { x: 565, y: 50, w: 155, h: 95 }, <>Plain-English questions over gold, as the user</>)}
+        {C('ask', 'Genie Agent', { x: 565, y: 45, w: 155, h: 100 }, <>Plain-English questions over gold</>)}
 
         {/* Serving and app */}
-        {C(
-          'serve',
-          'Lakebase',
-          { x: 790, y: 210, w: 200, h: 120 },
-          <>Synced copies of gold + usage · native review table</>
-        )}
-        {C(
-          'review',
-          'Databricks App',
-          { x: 790, y: 50, w: 200, h: 95 },
-          <>Review queue, How it works, AI model & usage, Genie panel</>
-        )}
+        {C('serve', 'Lakebase', { x: 790, y: 210, w: 200, h: 120 }, <>Synced copies of gold + review table</>)}
+        {C('review', 'Databricks App', { x: 790, y: 45, w: 200, h: 100 }, <>Review queue, Genie, model & usage</>)}
 
         {/* Unity Catalog band */}
         {C(
           'govern',
           'Unity Catalog',
-          { x: 210, y: 460, w: 780, h: 72 },
+          { x: 210, y: 432, w: 780, h: 60 },
           <>Explicit grants · raw volume · lineage from photo to answer · model access (EXECUTE) · audit</>
         )}
 
@@ -277,10 +262,10 @@ function ArchitectureDiagram({ selected, onSelect }: { selected: StageId; onSele
         <Arrow d="M890,208 L890,147" both label="reads · writes" lx={930} ly={182} />
         <Arrow d="M788,97 L722,97" label="Genie panel" lx={755} ly={89} />
         <Arrow d="M992,105 L1043,105" both />
-        <Arrow d="M890,332 L890,405 L660,405 L660,332" dashed />
+        <Arrow d="M890,332 L890,397 L660,397 L660,332" dashed />
 
         {/* Step 6: Lakehouse Sync, on the loop */}
-        {C('syncback', 'Lakehouse Sync', { x: 665, y: 383, w: 220, h: 44 }, null)}
+        {C('syncback', 'Lakehouse Sync', { x: 665, y: 376, w: 220, h: 42 }, null)}
       </svg>
     </div>
   );
@@ -300,17 +285,17 @@ function StageDetail({
   const idx = STEPS.findIndex((x) => x.id === id);
   return (
     <Card>
-      <CardContent className="pt-5">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-brand-navy text-brand-navy-foreground">
               <Icon className="h-4 w-4" />
             </span>
             <div>
-              <div className="text-lg font-semibold text-foreground">
+              <div className="text-base font-semibold text-foreground leading-tight">
                 {s.step !== null ? `Step ${s.step}: ${s.name}` : s.name}
               </div>
-              <div className="text-sm font-medium text-brand-teal">{s.product}</div>
+              <div className="text-xs font-medium text-brand-teal mt-0.5">{s.product}</div>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -334,9 +319,9 @@ function StageDetail({
             </Button>
           </div>
         </div>
-        <div className="grid gap-5 lg:grid-cols-3 text-sm">
+        <div className="space-y-3 text-[13px] leading-snug [&_p]:leading-snug">
           <div className="space-y-3">
-            <p className="text-foreground leading-relaxed">{s.what}</p>
+            <p className="text-foreground">{s.what}</p>
             <div className="flex items-center gap-2">
               <Badge className="bg-brand-teal text-brand-teal-foreground">Live</Badge>
               {live ? <span className="text-foreground">{s.live(live)}</span> : <Skeleton className="h-4 w-48" />}
@@ -344,21 +329,25 @@ function StageDetail({
           </div>
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-1.5">Built with</div>
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {s.objects.map((o) => (
                 <li key={o}>
-                  <code className="text-xs rounded bg-muted px-1.5 py-0.5">{o}</code>
+                  <code className="text-[11px] rounded bg-muted px-1.5 py-0.5">{o}</code>
                 </li>
               ))}
             </ul>
           </div>
-          <div className="flex gap-2 rounded-md bg-muted/60 p-3 h-fit">
+          <div className="flex gap-2 rounded-md bg-muted/60 p-2.5">
             <Lightbulb className="h-4 w-4 shrink-0 mt-0.5 text-brand-teal" />
             <p>
               <span className="font-medium">Why this design: </span>
               {s.why}
             </p>
           </div>
+          <p className="text-[11px] text-muted-foreground">
+            Live: Lakebase serving copies, review table and AI Gateway usage
+            {live?.lastDecisionAt ? ` · last decision ${formatDateTime(live.lastDecisionAt)}` : ''}
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -389,28 +378,23 @@ export function ArchitecturePage() {
   }, [readings.data, usage.days, reviewStats]);
 
   return (
-    <div className="space-y-5 w-full max-w-[1600px] mx-auto">
+    <div className="space-y-4 w-full max-w-[1600px] mx-auto">
       <div>
         <h2 className="text-2xl font-bold text-foreground">How it works</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          From robot photo to trusted answer on one governed platform. The numbers follow the flow; click any component
-          to see what it does and why.
+          From robot photo to trusted answer on one governed platform. Follow the numbers; click any component to see
+          what it does and why.
         </p>
       </div>
 
-      <Card>
-        <CardContent className="pt-5">
-          <ArchitectureDiagram selected={stage} onSelect={setStage} />
-        </CardContent>
-      </Card>
-
-      <StageDetail id={stage} live={live} onSelect={setStage} />
-
-      <p className="text-xs text-muted-foreground">
-        Live numbers come from the same governed tables the app uses (Lakebase serving copies, the review table and
-        Unity AI Gateway usage)
-        {live?.lastDecisionAt ? ` · last review decision ${formatDateTime(live.lastDecisionAt)}` : ''}.
-      </p>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <Card className="flex items-center">
+          <CardContent className="p-4 w-full">
+            <ArchitectureDiagram selected={stage} onSelect={setStage} />
+          </CardContent>
+        </Card>
+        <StageDetail id={stage} live={live} onSelect={setStage} />
+      </div>
     </div>
   );
 }
