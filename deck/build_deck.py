@@ -352,7 +352,13 @@ def slide_compare(prs):
                    "Reitsma et al., ETH Zurich, ICRA 2024.")
     notes(s, "Bespoke gauge-reading pipelines chain several models: detect the gauge, segment the needle, find the scale notches, fit an ellipse, "
              "OCR the scale markings (ETH Zurich, ICRA 2024). Each new dial type or defect adds work. A foundation model reads the dial in one call, "
-             "and the platform adds the review loop, governance and cost control.")
+             "and the platform adds the review loop, governance and cost control. "
+             "DEMO NEXT (8-18 min, then return to slide 8 or straight to slide 9): "
+             "1 Review queue: the outcome panel and the Needs review tab (people only check these). "
+             "2 Correct PI-3102: zoom into the photo, override 5.0 -> 1.0 bar with a reason (human in the loop). "
+             "3 Ask Genie: 'Which locations have the most low-confidence readings?' and expand the SQL. "
+             "4 AI model & usage: cost per reading and the confidence spread against the 70% review line (governed AI). "
+             "5 How it works: click through the steps and end on the sync-back loop ('your correction just flowed back here').")
 
 
 def slide_outcome(prs):
@@ -470,10 +476,7 @@ def slide_architecture(prs):
     notes(s, "Walk left to right: land, read, refine, serve, review, ask. Point out the closed loop (dashed arrow) and the Unity Catalog band under everything. "
              "Governed AI: low-confidence, unreadable and unexpectedly high readings always go to a reviewer; decisions are appended, never overwritten; "
              "the human correction rate is the live accuracy check. Analysts see the gold table only, Genie runs with the user's own permissions, "
-             "and every model call is attributed in Unity AI Gateway.\n\n"
-             "DEMO (8-10 min): 1 Land: 30 photos + metadata in the raw volume. 2 Read: the pipeline reads each dial once. "
-             "3 Triage: the queue shows only the readings that need a person. 4 Correct: fix PI-3102 (5.0 → 1.0 bar) with a reason. "
-             "5 Ask: Genie, 'Which locations have the most low-confidence readings?'. 6 Trust: How it works + AI model & usage pages.")
+             "and every model call is attributed in Unity AI Gateway. After the demo, use this slide as a quick recap (or skip it).")
 
 
 def slide_decisions(prs):

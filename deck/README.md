@@ -3,20 +3,20 @@
 
 Slides (title + 9 content + close), ordered to lead with the outcome: title · every photo, turned into trusted data (measured KPIs) · value for the executive sponsor and the domain owner · why Northbay needs this (business problem) · what we hear from energy operators · one platform for visual inspection (value proposition) · beyond classic vision and vendors (comparison) · architecture (with human in the loop, Unity Catalog and Unity AI Gateway) · decisions & trade-offs · roadmap and pilot · close.
 
-Run of show for a 20–30 minute slot (the demo script is in the architecture slide's speaker notes):
+Run of show for a 20–30 minute slot. The demo comes straight after the comparison (the promise, then the proof); its script is in slide 7's speaker notes and it ends on the app's *How it works* page, so slide 8 becomes a quick recap.
 
 | Time | Slides | Content |
 |---|---|---|
-| 0–3 min | 1–3 | Outcome, KPIs, value per persona |
-| 3–9 min | 4–7 | Problem, what operators tell us, value proposition, comparison (skim 5 and 7 if short of time) |
-| 9–11 min | 8 | Architecture, then switch to the app |
-| 11–20 min | live demo | Review queue → correct PI-3102 → Genie → How it works → AI model & usage |
-| 20–24 min | 9–10 | Decisions, roadmap and pilot |
-| 24–30 min | 11 | Close, questions |
+| 0–3 min | 1–3 | Value model, executive sponsor and domain owner |
+| 3–8 min | 4–7 | Problem, what operators tell us, value proposition, comparison |
+| 8–18 min | live demo | Review queue → correct PI-3102 → Genie → AI model & usage → How it works |
+| 18–19 min | 8 | Architecture recap (or skip) |
+| 19–23 min | 9–10 | Decisions, roadmap and pilot |
+| 23–30 min | 11 | Close, questions |
 
 Business-context sources (cited on the slides): Reitsma et al., *Under pressure: learning-based analog gauge reading in the wild*, ETH Zurich, ICRA 2024 (arXiv 2404.08785) · Siemens, *The True Cost of Downtime 2024* · ANYbotics website (vendor-reported inspection volume). The operator patterns on slide 4 are generalised from robot gauge-reading programmes, with no customer names.
 
-Measured numbers (67% auto-accepted, < 3 minutes per round, ~$0.04 per reading) come from `evidence/`. Numbers marked `[TBD]` still need the impact model. Export to PDF for the FE Bar submission form.
+Value numbers come from an illustrative site value model (500 gauges photographed twice a day); its assumptions are footnoted on slide 2 and worked in the speaker notes. The per-photo AI cost (~$0.04) comes from `evidence/07_gateway.md`. `pressure-gauge-reader.pdf` is the PDF export for the FE Bar submission form.
 
 ```bash
 pip install python-pptx && python deck/build_deck.py

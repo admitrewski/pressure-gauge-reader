@@ -4,6 +4,8 @@
 
 *Northbay Energy is a fictional operator (one refinery, one terminal); all metadata is synthetic and the gauge photos are publicly licensed.*
 
+**Reviewers start here:** `SUBMISSION.md` (the four submission answers) · `deck/pressure-gauge-reader.pdf` · `VALIDATION.md` (text evidence for every stage) · `DECISIONS.md` · `BUILD.md` (AI usage)
+
 ## The problem
 
 Refineries and process plants run daily operator rounds to read hundreds of analog pressure gauges. Increasingly, inspection robots capture these as images, but turning an image into a trusted reading is still slow: readings are transcribed by hand or outsourced to a third-party vision vendor. The data lands outside the central data platform, and an out-of-range pressure can sit unnoticed until someone reviews it.
