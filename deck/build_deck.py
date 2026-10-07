@@ -174,8 +174,8 @@ class Canvas:
 def slide_title(prs):
     s = new_slide(prs, L_TITLE)
     set_text(s, 0, "Northbay Energy Gauge Reader")
-    set_text(s, 1, "Robot inspection rounds, read by AI, checked by people")
-    set_text(s, 2, "Refinery and terminal  |  October 2026")
+    set_text(s, 1, "AI visual inspection for robot rounds")
+    set_text(s, 2, "Starting with every pressure gauge  |  October 2026")
     notes(s, "Northbay Energy is a fictional operator (one refinery, one terminal) built on synthetic metadata and publicly licensed gauge photos. "
              "Open with the business persona: operations leadership running robot inspection rounds.")
 
@@ -183,8 +183,9 @@ def slide_title(prs):
 def slide_outcome_statement(prs):
     s = new_slide(prs, L_POWER_KICKER)
     set_text(s, 1, "THE OUTCOME")
-    set_text(s, 0, "Every gauge read in minutes, not days")
-    notes(s, "Lead with the outcome for the executive sponsor.")
+    set_text(s, 0, "Every inspection photo, turned into trusted data")
+    notes(s, "Lead with the outcome for the executive sponsor. Gauge readings are the first use case; "
+             "the same platform turns the same photos into leak, corrosion and damage findings.")
 
 
 def slide_problem(prs):
@@ -279,6 +280,139 @@ def slide_why_now(prs):
     source_line(s, "³ ANYbotics, anybotics.com (vendor-reported figure).   Cost per reading: build run, GPT-5.5 via Unity AI Gateway (evidence/07_gateway.md).")
 
 
+def _pillar(slide, x, y, w, h, title, bullets, accent=RED):
+    """A value-proposition card: accent bar, title and short bullets."""
+    card = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
+    card.fill.solid()
+    card.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    card.line.color.rgb = RGBColor(0xDC, 0xE0, 0xE2)
+    card.line.width = Pt(0.75)
+    card.shadow.inherit = False
+    bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(0.07))
+    bar.fill.solid()
+    bar.fill.fore_color.rgb = accent
+    bar.line.fill.background()
+    bar.shadow.inherit = False
+    tb = slide.shapes.add_textbox(Inches(x + 0.18), Inches(y + 0.22), Inches(w - 0.36), Inches(h - 0.35))
+    tf = tb.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    p = tf.paragraphs[0]
+    r = p.add_run()
+    r.text = title
+    r.font.name, r.font.size, r.font.bold, r.font.color.rgb = FONT, Pt(17), True, NAVY
+    p.space_after = Pt(8)
+    for b in bullets:
+        p = tf.add_paragraph()
+        p.space_after = Pt(6)
+        r = p.add_run()
+        r.text = "•  " + b
+        r.font.name, r.font.size, r.font.color.rgb = FONT, Pt(13.5), NAVY
+
+
+def slide_value_prop(prs):
+    s = new_slide(prs, L_BASIC)
+    set_text(s, 0, "One platform for visual inspection")
+    set_text(s, 2, "Gauge readings are the first use case — not the last")
+    drop(s, 1)
+    pillars = [
+        ("Beyond gauges", [
+            "The same photos also show leaks, corrosion and rust, breakages, missing guards and valve positions",
+            "A new inspection type is a new prompt and output fields, not a new project",
+            "Same review queue, same governance, same Genie",
+        ]),
+        ("Open, not a black box", [
+            "Foundation vision models instead of hand-built computer vision that needs tuning per dial, angle and light",
+            "No third-party vendor or per-image fee; prompts, data and results stay in your lakehouse",
+            "Swap models through Unity AI Gateway",
+        ]),
+        ("Specialise when it pays", [
+            "The model is an example: start with a foundation model, no training needed",
+            "Every reviewer correction becomes a labelled example",
+            "Fine-tune specialist models (gauge reading, rust detection) and evaluate them before switching",
+        ]),
+        ("Any cloud, any robot", [
+            "Runs on Databricks on AWS, Azure and Google Cloud, deployed as one bundle¹",
+            "Works with photos from any robot, drone or handheld camera",
+            "No lock-in to a robot or vision vendor",
+        ]),
+    ]
+    w, gap, x0 = 2.83, 0.12, 0.83
+    for i, (title, bullets) in enumerate(pillars):
+        _pillar(s, x0 + i * (w + gap), 2.1, w, 4.45, title, bullets, accent=RED if i % 2 == 0 else TEAL)
+    source_line(s, "¹ Lakebase is in Beta on Google Cloud; where Lakehouse Sync (Lakebase → Delta) is not yet available, a scheduled MERGE "
+                   "returns review decisions to Delta (DECISIONS D4).")
+    notes(s, "The value proposition: one governed platform turns inspection photos into data. Gauges are the worked example in this build. "
+             "Condition findings (leaks, rust, damage) reuse the same pipeline with a new prompt and output schema. "
+             "The reviewer loop produces labelled data, so fine-tuning a specialist model is an option once volumes justify it.")
+
+
+def slide_compare(prs):
+    s = new_slide(prs, L_BASIC)
+    set_text(s, 0, "Beyond classic vision and vendors")
+    set_text(s, 2, "Foundation models on an open platform change the economics")
+    body = ph(s, 1)
+    left, top, width = body.left, body.top, body.width
+    drop(s, 1)
+    header = ("", "Bespoke computer vision", "Third-party vendor", "Foundation models on Databricks")
+    rows = [
+        ("New inspection type", "New detection, segmentation and OCR models to build", "Wait for the vendor's roadmap", "New prompt and output fields; test it the same day"),
+        ("Labelled data to start", "Labelled images for every gauge type and defect", "None, but it's the vendor's model", "None — reviewer corrections build a labelled set as you go"),
+        ("Hand-tuning", "Per dial design, angle, glare and lighting", "Opaque; results still re-checked by hand", "Confidence score routes uncertain readings to a person"),
+        ("Cost model", "GPU training plus a team to maintain it", "Fee per image", "Pay per token: ~$0.04 per gauge reading²"),
+        ("Data and governance", "A separate stack to secure", "Results arrive outside your platform", "Unity Catalog: grants, lineage, audit"),
+        ("Improves over time", "Only when someone retrains it", "On the vendor's terms", "Swap or fine-tune models through Unity AI Gateway"),
+    ]
+    tbl = s.shapes.add_table(len(rows) + 1, 4, left, top - Inches(0.3), width, Inches(4.5)).table
+    widths = [0.19, 0.25, 0.23, 0.33]
+    for i, f in enumerate(widths):
+        tbl.columns[i].width = int(width * f)
+    for c, h in enumerate(header):
+        cell = tbl.cell(0, c)
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = RED if c == 3 else NAVY
+        _text(cell.text_frame, [[(h, RGBColor(0xFF, 0xFF, 0xFF), True)]], 13, align=PP_ALIGN.LEFT)
+    for r, row in enumerate(rows, start=1):
+        for c, txt in enumerate(row):
+            cell = tbl.cell(r, c)
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = (RGBColor(0xFF, 0xF1, 0xEE) if c == 3
+                                        else RGBColor(0xF4, 0xF6, 0xF7) if r % 2 else RGBColor(0xFF, 0xFF, 0xFF))
+            _text(cell.text_frame, [[(txt, NAVY, c in (0, 3))]], 12, align=PP_ALIGN.LEFT)
+    source_line(s, "² Build run: GPT-5.5 via Unity AI Gateway at list price (evidence/07_gateway.md). Bespoke pipeline steps as described in "
+                   "Reitsma et al., ETH Zurich, ICRA 2024.")
+    notes(s, "Bespoke gauge-reading pipelines chain several models: detect the gauge, segment the needle, find the scale notches, fit an ellipse, "
+             "OCR the scale markings (ETH Zurich, ICRA 2024). Each new dial type or defect adds work. A foundation model reads the dial in one call, "
+             "and the platform adds the review loop, governance and cost control.")
+
+
+def slide_roadmap(prs):
+    s = new_slide(prs, L_3CARDS)
+    set_text(s, 0, "Roadmap: more from the same photos")
+    set_text(s, 7, "Each phase reuses the pipeline, review app, governance and Genie")
+    for hdr, body, (ih, ib) in [
+        ("1 · Gauge readings", [
+            "Pilot at one site: every pressure gauge on every round",
+            "Unexpectedly high readings raise maintenance work orders",
+            "Baseline the human correction rate",
+        ], (4, 1)),
+        ("2 · Condition findings", [
+            "Leaks, corrosion and rust, breakages and missing guards from the same photos",
+            "Findings reviewed in the same queue, with severity",
+            "Trends per asset across rounds",
+        ], (5, 2)),
+        ("3 · Specialist models", [
+            "Fine-tune models on the reviewer-labelled photos (e.g. gauge reading, rust detection)",
+            "Evaluate against the current model before switching",
+            "Lower cost per reading at fleet scale",
+        ], (6, 3)),
+    ]:
+        set_text(s, ih, hdr)
+        set_bullets(s, ib, body, size=15)
+    notes(s, "Phase 2 needs no new infrastructure: add condition fields to the model's output schema and a findings view in gold. "
+             "Phase 3 uses the reviewer corrections collected in phases 1 and 2 as training and evaluation data.")
+
+
 def slide_outcome(prs):
     s = new_slide(prs, L_3CARDS)
     set_text(s, 0, "What changes for operations")
@@ -330,7 +464,7 @@ def slide_architecture(prs):
     # Databricks platform
     c.container(1.9, 0.95, 6.7, 3.0, "FFE4DF", 45)
     c.box(2.05, 1.45, 0.95, 1.5, "Lakeflow Auto Loader", "Incremental, exactly-once ingest from the UC Volume", icon="data_pipelines")
-    c.box(3.2, 1.08, 1.25, 0.62, "Unity AI Gateway", "GPT-5.5 vision model", icon="access_connector")
+    c.box(3.2, 1.08, 1.25, 0.62, "Unity AI Gateway", "GPT-5.5 or any fine-tuned model", icon="access_connector")
     c.box(3.2, 2.1, 1.25, 0.85, "Bronze", "ai_query: reading, unit, scale, confidence", icon="unstructured_bronze")
     c.box(4.65, 2.1, 1.1, 0.85, "Silver", "Parsed readings + quality checks", icon="semi_structured_silver")
     c.box(5.95, 2.1, 1.1, 0.85, "Gold", "Readings + limits + review status", icon="delta_table")
@@ -435,7 +569,6 @@ def slide_next(prs):
         "Connect the robot fleet's image export to the raw volume (file-arrival trigger in place)",
         "Load real gauge tags and operating limits from the asset register",
         "Alert on unexpectedly high readings into the maintenance work-order system",
-        "Extend the same pipeline to condition findings (rust, leaks) and per-gauge trends across rounds",
         "Promote with Declarative Automation Bundles (dev → prod) and named reviewer / analyst groups",
     ], size=16)
     set_bullets(s, 2, [
@@ -449,7 +582,7 @@ def slide_next(prs):
 
 def slide_close(prs):
     s = new_slide(prs, L_POWER)
-    set_text(s, 0, "Every gauge read, every decision governed")
+    set_text(s, 0, "Every photo read, every finding governed")
 
 
 def main():
@@ -459,8 +592,9 @@ def main():
     for sldId in list(sldIdLst):
         prs.part.drop_rel(sldId.rId)
         sldIdLst.remove(sldId)
-    for build in (slide_title, slide_outcome_statement, slide_problem, slide_heard, slide_why_now, slide_outcome, slide_personas, slide_architecture,
-                  slide_demo, slide_trust, slide_decisions, slide_next, slide_close):
+    for build in (slide_title, slide_outcome_statement, slide_problem, slide_heard, slide_value_prop, slide_compare, slide_why_now,
+                  slide_outcome, slide_personas, slide_architecture, slide_demo, slide_trust, slide_decisions, slide_roadmap,
+                  slide_next, slide_close):
         build(prs)
     prs.save(OUT)
     print("wrote", OUT)
