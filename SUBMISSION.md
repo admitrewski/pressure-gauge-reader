@@ -14,20 +14,56 @@ The two personas are the **executive sponsor**, a VP of Operations / HSE who wan
 
 ## 2. How does your Databricks solution address this challenge?
 
-One governed flow takes each photo through to a trusted reading and then to an answer:
+**Architecture.** The solution is one governed data journey on the Databricks Data Intelligence Platform, all serverless and deployed with Declarative Automation Bundles. Robot photos land in Unity Catalog. A Lakeflow pipeline reads each photo once with a vision model and turns it into a trusted reading. Lakebase serves the readings to a Databricks App, where people review only the uncertain ones. Their decisions flow back into the lakehouse, and a Genie Agent answers questions over the result. Unity Catalog governs every step, and Unity AI Gateway observes and controls every model call.
 
-- **Lakeflow (ingest + AI):** Auto Loader picks up photos and round metadata from a Unity Catalog volume, and a file-arrival trigger starts the job. `ai_query` calls GPT-5.5 through Unity AI Gateway inside a streaming table, so each photo is read and billed exactly once. It returns the reading, unit, dial scale, a confidence score and any image issues. Silver applies data-quality expectations. Gold applies each gauge's operating limit and decides what needs a person.
-- **Unity Catalog (govern):** explicit least-privilege grants (analysts see the gold table only; the app reads photos read-only), lineage from photo to answer, and model access through `EXECUTE` on `system.ai`.
-- **Lakebase (serve + write-back):** a synced, read-only copy of gold serves the app in milliseconds. Reviewer decisions are appended to a native Postgres table (who, when, why). Lakehouse Sync streams them back to Delta, and the next pipeline run folds them into gold.
-- **Databricks App (React, AppKit):**
-  - A review queue sorted by risk: low confidence, unreadable, unexpectedly high.
-  - Confirm, override with a reason, or mark unreadable, with image zoom.
-  - An *AI model & usage* page: cost per reading, confidence against the review threshold, human correction rate.
-  - An interactive *How it works* architecture page.
-- **Genie Agent:** plain-English questions over gold, run with the signed-in user's own permissions, with the generated SQL shown on every answer.
-- **Unity AI Gateway (observe + control):** every model call is attributed and costed (`gold_vlm_usage_daily`), and models can be swapped without changing the pipeline.
+```
+Robot photos + round metadata
+  → UC volume → Lakeflow: Auto Loader → bronze (ai_query → GPT-5.5 via Unity AI Gateway) → silver → gold
+  → Lakebase synced tables → Databricks App (review queue) → reviewer decision → native Lakebase table
+  → Lakehouse Sync (CDC) → Delta → gold (next run) → Genie Agent + app
+  [Unity Catalog under every step · Unity AI Gateway on every model call]
+```
 
-**Beyond gauges:** the same photos also show leaks, corrosion, breakages and missing guards. Each new inspection type is a new prompt and output fields on the same pipeline, review queue, governance and Genie. Because this uses open foundation models rather than bespoke computer vision or a vendor, reviewer corrections become labelled data. That data can later fine-tune specialist models (e.g. for gauge reading or rust detection), which can be evaluated before switching. It runs on Databricks on AWS, Azure and Google Cloud.
+**The data journey, stage by stage:**
+
+1. **Ingest with Lakeflow:**
+   - **Lakeflow Spark Declarative Pipelines** (SQL, serverless, triggered).
+   - **Auto Loader** (`read_files`) incrementally ingests the photos (binary files) and the metadata CSV (gauge tag, site, process unit, robot, operating limit) exactly once.
+   - **Streaming tables** for bronze and **materialized views** for gold.
+   - **Expectations** in silver: the model call succeeded, the reading is within the dial's scale, and a unit is present. Failed calls go to a quarantine table instead of stopping the pipeline.
+   - A **Lakeflow Job** with a **file-arrival trigger** runs the pipeline when photos land, then refreshes the Lakebase serving copies.
+2. **Govern with Unity Catalog:**
+   - A UC **volume** holds the raw photos; UC **managed tables** hold every layer.
+   - **Explicit least-privilege grants:** analysts get `SELECT` on the gold table only; the app's service principal gets `READ VOLUME` on the photos and a read-only serving copy.
+   - **Lineage** from photo to answer (`system.access.table_lineage`).
+   - **Model access** governed by `EXECUTE` on `system.ai`.
+   - **System tables** feed the cost view: `system.ai_gateway.usage` and `system.billing.list_prices`.
+3. **Serve with Lakebase** (Autoscaling Postgres):
+   - **Synced tables** (Snapshot mode) give the app millisecond reads of the gold readings and the model usage.
+   - Reviewer decisions are appended to an **app-owned native Postgres table**: insert-only, with who, when and why.
+   - **Lakehouse Sync** (change data capture, Beta) streams every decision back into a Delta change-history table in Unity Catalog, which gold folds in on the next run. The synced table is never written to, so the sync never breaks.
+4. **Make it intelligent with Gen AI:**
+   - **AI Functions:** `ai_query` sends each photo (`files => content`) to **GPT-5.5**, served as a **Unity AI Gateway** model service (`system.ai.gpt-5-5`).
+   - A JSON response format returns reading, unit, dial scale, a 0–1 confidence, a readable flag and image issues. `failOnError => false` captures errors as data.
+   - Calling it inside the streaming table means each photo is read and billed once; refreshes never re-read a photo or change a reviewed reading.
+   - Gold applies each gauge's **operating limit** and routes low-confidence, unreadable and unexpectedly high readings to a person.
+   - **Unity AI Gateway** logs every call (requester, tokens, status). The pipeline turns that log into a daily **usage and cost table** (`gold_vlm_usage_daily`), and the model can be swapped without changing pipeline code.
+5. **Ask with a Genie Agent:**
+   - A Genie Agent on the single gold table, with column descriptions, **synonyms** (e.g. "low confidence", "location"), **example SQL** and **benchmark questions**.
+   - Embedded in the app and run **on behalf of the signed-in user**, so their own grants apply and the generated SQL is shown on every answer.
+6. **Surface it with a Databricks App:**
+   - Built with **AppKit** (React + Express) using its **Lakebase**, **Files** (read-only UC volume access for the photos) and **Genie** plugins, and deployed with Declarative Automation Bundles.
+   - Four surfaces:
+     - **Review queue**, sorted by risk: confirm, override with a reason, or mark unreadable, with image zoom.
+     - **Genie side panel.**
+     - **AI model & usage** page: cost per reading, confidence against the review threshold, human correction rate.
+     - **How it works** page: an interactive architecture diagram with live numbers.
+
+**Why it fits the problem:**
+- **Foundation models instead of hand-built computer vision or a per-image vendor:** no labelled data or training, and confidence-based review covers the gaps.
+- **A platform, not a point solution:** leaks, corrosion, breakages and missing guards are a new prompt and output fields on the same pipeline, review queue, governance and Genie.
+- **Better models over time:** reviewer corrections become labelled data for fine-tuning specialist models (e.g. gauge reading or rust detection), which can be evaluated before switching.
+- **Any cloud:** it runs on Databricks on AWS, Azure and Google Cloud.
 
 ## 3. What AI tools did you use, and what was your workflow? What decisions and trade-offs did you have to make for your build?
 
