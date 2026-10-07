@@ -1,10 +1,12 @@
 import {
+  Activity,
   Camera,
   Database,
   Layers,
   MessageSquareText,
   RefreshCcw,
   ScanEye,
+  ShieldCheck,
   UserCheck,
   type LucideIcon,
 } from 'lucide-react';
@@ -16,16 +18,18 @@ export interface LiveContext {
   pending: number;
   photosRead: number;
   modelCalls: number;
+  costPerReading: number | null;
   decisions: number;
   lastReadAt: string | null;
   lastDecisionAt: string | null;
 }
 
-export type StageId = 'land' | 'read' | 'refine' | 'serve' | 'review' | 'syncback' | 'ask';
+export type StageId = 'land' | 'read' | 'refine' | 'serve' | 'review' | 'syncback' | 'ask' | 'govern' | 'observe';
 
 export interface Stage {
   id: StageId;
-  step: number;
+  /** Numbered pipeline step, or null for the layers that span every step. */
+  step: number | null;
   name: string;
   product: string;
   icon: LucideIcon;
@@ -130,4 +134,41 @@ export const STAGES: Stage[] = [
     why: 'One denormalised gold table with the business terms defined (operating limit, low confidence, human-corrected), so Genie never invents thresholds.',
     live: () => 'Open “Ask Genie” on the review page',
   },
+  {
+    id: 'govern',
+    step: null,
+    name: 'Govern',
+    product: 'Unity Catalog',
+    icon: ShieldCheck,
+    summary: 'Grants, lineage, audit',
+    what: 'Every object in the flow — the raw volume, pipeline tables, synced tables and the model service — is a Unity Catalog object with explicit grants. Lineage connects each photo to the answer Genie gives, and every access is audited.',
+    objects: [
+      'account users: USE CATALOG / USE SCHEMA + SELECT on gold only',
+      'App service principal: READ VOLUME on raw, read-only serving copy',
+      'Model access: EXECUTE on system.ai',
+      'Lineage: system.access.table_lineage',
+    ],
+    why: 'Least privilege by role: analysts never see raw photos or pipeline internals, the app can read photos but not change them, and Genie runs as the signed-in user, so the same grants apply.',
+    live: () => 'Grants and lineage recorded in evidence/02_grants.md and 02_lineage.md',
+  },
+  {
+    id: 'observe',
+    step: null,
+    name: 'Observe the AI',
+    product: 'Unity AI Gateway',
+    icon: Activity,
+    summary: 'GPT-5.5, logged and costed',
+    what: 'The pipeline calls GPT-5.5 by its Unity AI Gateway service name. Every call is logged with requester, tokens and status, and the pipeline turns that log into a daily usage and cost table for the AI model & usage page.',
+    objects: [
+      'system.ai.gpt-5-5 (model service)',
+      'system.ai_gateway.usage',
+      'gold_vlm_usage_daily → vlm_usage_serving',
+    ],
+    why: 'The model can be swapped or given a fallback without touching the pipeline, and every reading has a known cost.',
+    live: (c) =>
+      `${c.modelCalls} model calls logged${c.costPerReading !== null ? ` · $${c.costPerReading.toFixed(3)} per reading` : ''}`,
+  },
 ];
+
+/** The numbered steps, in order (used for previous / next). */
+export const STEPS = STAGES.filter((s) => s.step !== null);
