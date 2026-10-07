@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, NavLink, RouterProvider, Outlet } from '
 import { useEffect, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import { BRAND } from './brand';
+import { ArchitecturePage } from './pages/architecture/ArchitecturePage';
 import { ModelUsagePage } from './pages/model/ModelUsagePage';
 import { ReviewPage } from './pages/review/ReviewPage';
 
@@ -45,6 +46,9 @@ function Layout() {
             <NavLink to="/" end className={navLinkClass}>
               Review readings
             </NavLink>
+            <NavLink to="/how-it-works" className={navLinkClass}>
+              How it works
+            </NavLink>
             <NavLink to="/model" className={navLinkClass}>
               AI model & usage
             </NavLink>
@@ -72,6 +76,7 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { path: '/', element: <ReviewPage /> },
+      { path: '/how-it-works', element: <ArchitecturePage /> },
       { path: '/model', element: <ModelUsagePage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

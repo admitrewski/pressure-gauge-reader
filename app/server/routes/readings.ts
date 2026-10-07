@@ -96,6 +96,21 @@ export function setupReadingRoutes(appkit: AppKitWithLakebase) {
       }
     });
 
+    // Live counts for the "How it works" page: every decision ever appended to the review table.
+    app.get('/api/review-stats', async (_req, res) => {
+      try {
+        const { rows } = await appkit.lakebase.query(
+          `SELECT count(*)::int AS decisions, count(DISTINCT image_id)::int AS images_reviewed,
+                  max(reviewed_at) AS last_decision_at
+           FROM ${REVIEW_TABLE}`
+        );
+        res.json(rows[0] ?? { decisions: 0, images_reviewed: 0, last_decision_at: null });
+      } catch (err) {
+        console.error('Failed to load review stats:', err);
+        res.status(500).json({ error: 'Failed to load review stats' });
+      }
+    });
+
     app.post('/api/readings/:imageId/review', async (req, res) => {
       const parsed = ReviewBody.safeParse(req.body);
       if (!parsed.success) {

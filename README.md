@@ -40,7 +40,7 @@ Genie Agent on gold: "Which readings needed human intervention?" "Are any pressu
 | Serve | Lakebase: synced table + native overrides table, Lakehouse Sync | `src/lakebase/` |
 | Intelligence | `ai_query` with a vision model: reading, unit, scale, confidence | `src/pipeline/` |
 | Natural-language queries | Genie Agent | `src/genie/` |
-| Business app | Databricks App: review queue with outcome KPIs, *AI model & usage* page, Genie side panel | `app/` |
+| Business app | Databricks App: review queue with outcome KPIs, *How it works* (architecture + one reading traced end to end), *AI model & usage*, Genie side panel | `app/` |
 | AI observability and control | Unity AI Gateway: access, usage/cost (`gold_vlm_usage_daily` → app), rate limits, budgets, request logging | `src/gateway/` |
 
 ## Repository layout
