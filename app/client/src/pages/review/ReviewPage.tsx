@@ -127,8 +127,8 @@ function GenieSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
         <SheetHeader>
           <SheetTitle>Ask about these readings</SheetTitle>
           <SheetDescription>
-            Answers come from the governed inspection data, with your own permissions. Expand the SQL on each answer to
-            verify it.
+            AI-generated answers from the governed inspection data, run with your own Databricks permissions. Expand
+            the SQL on each answer and verify before acting.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 min-h-0 border rounded-lg overflow-hidden mx-4 mb-4">

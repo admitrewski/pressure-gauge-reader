@@ -3,7 +3,7 @@
 The business surface of the Pressure Gauge Reader.
 
 - **Review readings** (`client/src/pages/review/`): KPI strip with data freshness, a status distribution bar for the whole round, and a resizable **split view**: the queue (gauge thumbnails, tabs *Needs review / Unexpectedly high / Human-corrected / Auto-accepted / All readings*) on the left and the selected reading on the right — photo from the UC volume, trusted vs AI reading, a confidence bar with the review threshold marked, image issues, and a decision banner once reviewed. Reviewers **confirm**, **override** (value + reason) or **mark unreadable**; keyboard shortcuts (↑/↓, C, O, U) and auto-advance to the next reading keep the queue moving. **Ask Genie** opens in a side panel without leaving the queue.
-- **Ask Genie** (`client/src/pages/genie/`): the "Gauge Inspection Readings" Genie Agent (`client/src/components/GenieAssistant.tsx`), on behalf of the signed-in user, with clickable example questions and generated SQL on every answer.
+- **Ask Genie** (side panel, `client/src/components/GenieAssistant.tsx`): the "Gauge Inspection Readings" Genie Agent, on behalf of the signed-in user, with clickable example questions and generated SQL on every answer. There is no separate Genie page: reviewers ask questions without leaving the queue.
 
 ## How it reads and writes
 | Route | What it does |
