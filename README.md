@@ -4,7 +4,7 @@
 
 *Northbay Energy is a fictional operator (one refinery, one terminal); all metadata is synthetic and the gauge photos are publicly licensed.*
 
-**Reviewers start here:** `SUBMISSION.md` (the four submission answers) · `deck/pressure-gauge-reader.pdf` · `VALIDATION.md` (text evidence for every stage) · `DECISIONS.md` · `BUILD.md` (AI usage)
+**Reviewers start here:** `deck/pressure-gauge-reader.pdf` · `VALIDATION.md` (text evidence for every stage) · `DECISIONS.md` · `BUILD.md` (AI usage)
 
 ## The problem
 
