@@ -2,7 +2,7 @@
 exported from "[BRAND TEMPLATE] Databricks Corporate Slide 2025"): DM Sans, dark teal + Databricks red, brand layouts.
 
 Usage:  python deck/build_deck.py      (requires python-pptx)
-Numbers shown as [TBD] still need to be filled in from the impact model; measured numbers come from evidence/.
+Value numbers come from an illustrative value model (assumptions on the slide and in the speaker notes); unit cost per photo comes from evidence/.
 """
 import pathlib
 
@@ -357,19 +357,35 @@ def slide_compare(prs):
 
 def slide_outcome(prs):
     s = new_slide(prs, L_3CARDS)
-    set_text(s, 0, "Every photo, turned into trusted data")
-    set_text(s, 7, "What changes — measured on the build round: 30 gauges, 2 sites")
+    set_text(s, 0, "Where the value comes from")
+    set_text(s, 7, "Illustrative site: 500 gauges, photographed twice a day")
     for hdr, body, (ih, ib) in [
-        ("67% need no one", ["20 of 30 readings read and accepted by AI", "Reviewers check 10, not 30 — no manual transcription"], (4, 1)),
-        ("< 3 minutes", ["One pipeline run read the whole round, each photo once", "Excursions surfaced the same shift"], (5, 2)),
-        ("~$0.04 per reading", ["AI cost at list price, every call attributed", "100% of uncertain or unexpectedly high readings checked by a person"], (6, 3)),
+        ("~4,900 hours a year", [
+            "365,000 readings a year, each transcribed or re-checked by hand: ~6,100 hours at 1 minute each¹",
+            "With AI, people check only the uncertain ones (target: 1 in 5)",
+            "About 3 people's time, freed for maintenance",
+        ], (4, 1)),
+        ("~$15k a year AI cost", [
+            "365,000 photos × ~$0.04 per photo at list price²",
+            "vs. ~$180k a year at a $0.50 per-image vendor fee¹",
+            "No model to train, host or maintain",
+        ], (5, 2)),
+        ("Earlier warnings", [
+            "Excursions flagged the same shift, not at the next manual round",
+            "Unplanned downtime costs a large plant ~$0.8M an hour³",
+            "Avoiding a single hour is worth ~50× the annual AI cost",
+        ], (6, 3)),
     ]:
         set_text(s, ih, hdr)
-        set_bullets(s, ib, body)
-    notes(s, "Lead with the outcome for the executive sponsor: gauge readings are the first use case; the same platform turns the same photos "
-             "into leak, corrosion and damage findings. "
-             "Numbers from the build run (evidence/04_readings_summary.md, 01_pipeline_run.md, 07_gateway.md). "
-             "Still to model with the customer: hours of manual rounds removed per site x loaded cost, and vendor cost per image avoided.")
+        set_bullets(s, ib, body, size=15)
+    source_line(s, "¹ Assumptions to replace with Northbay's numbers: 1 min per reading, $0.50 per image vendor fee.   "
+                   "² Measured tokens per photo × GPT-5.5 list price.   ³ Siemens, The True Cost of Downtime 2024.")
+    notes(s, "Lead with the value for the executive sponsor. This is a value model, not a test result: replace the assumptions with Northbay's "
+             "gauge count, rounds per day, minutes per reading and current vendor fee. "
+             "Hours: 500 gauges x 2 rounds x 365 days = 365,000 readings; at 1 minute each = ~6,100 hours; reviewing 1 in 5 = ~1,200 hours; "
+             "~4,900 hours saved (~2.9 FTE at 1,700 hours). AI cost: 365,000 x $0.042 = ~$15k. Vendor: 365,000 x $0.50 = ~$180k. "
+             "Downtime: $253M / 326 hours = ~$776k an hour, ~50x the annual AI cost. "
+             "Gauge readings are the first use case; the same photos also give leak, corrosion and damage findings at no extra capture cost.")
 
 
 def slide_personas(prs):
@@ -378,8 +394,8 @@ def slide_personas(prs):
     set_text(s, 5, "Built for the executive sponsor and the domain owner")
     set_text(s, 3, "Executive sponsor — VP Operations / HSE")
     set_bullets(s, 1, [
-        "Fewer people in hazardous areas for routine rounds: [TBD] exposure hours avoided per year",
-        "Vendor dependency removed: ~$0.04 per reading on the platform vs. [TBD] per image today",
+        "Robot rounds keep ~2,200 operator hours a year out of process areas (2 rounds a day × ~3 hours)",
+        "Vendor dependency removed: ~$15k a year on the platform vs. ~$180k in per-image fees",
         "Unexpectedly high pressures surfaced the same shift, not at the next manual round",
     ], size=16)
     set_text(s, 4, "Domain owner — Reliability / Maintenance lead")
@@ -456,7 +472,7 @@ def slide_architecture(prs):
              "the human correction rate is the live accuracy check. Analysts see the gold table only, Genie runs with the user's own permissions, "
              "and every model call is attributed in Unity AI Gateway.\n\n"
              "DEMO (8-10 min): 1 Land: 30 photos + metadata in the raw volume. 2 Read: the pipeline reads each dial once. "
-             "3 Triage: 67% need no one; open the review queue. 4 Correct: fix PI-3102 (5.0 → 1.0 bar) with a reason. "
+             "3 Triage: the queue shows only the readings that need a person. 4 Correct: fix PI-3102 (5.0 → 1.0 bar) with a reason. "
              "5 Ask: Genie, 'Which locations have the most low-confidence readings?'. 6 Trust: How it works + AI model & usage pages.")
 
 
@@ -486,9 +502,10 @@ def slide_roadmap_pilot(prs):
     ], size=15)
     set_bullets(s, 2, [
         "Pilot success criteria",
-        "One site, [TBD] weeks",
-        "Human correction rate below [TBD]%",
-        "[TBD] hours of manual rounds removed",
+        "One site, 8 weeks, ~500 gauges",
+        "At most 1 in 5 readings sent to review",
+        "≥ 95% of auto-accepted readings within ±2% of full scale (weekly spot check)",
+        "~4,900 hours a year of reading and re-checking removed (run rate)",
         "Every reading traceable from photo to answer",
     ], size=16)
     notes(s, "Phase 2 needs no new infrastructure: add condition fields to the model's output schema and a findings view in gold. "

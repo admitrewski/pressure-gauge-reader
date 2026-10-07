@@ -10,12 +10,14 @@ Refineries and process plants run daily operator rounds to read hundreds of anal
 
 ## The outcome
 
-- **Most readings need no one:** in the build round, **20 of 30 gauges (67%) were read and accepted by AI**; reviewers checked 10, not 30 (`evidence/04_readings_summary.md`).
-- **Readings in minutes, not days:** the round's 30 photos were read in one pipeline update of under 3 minutes, once each (`evidence/01_pipeline_run.md`, `evidence/01_incremental_run.md`).
-- **Humans only review what matters:** confidence below 70%, unreadable dials and unexpectedly high readings go to a reviewer; every correction is audited and flows back to Delta.
-- **Excursions surfaced the same shift:** readings above a gauge's normal operating limit are flagged (4 in the build round), and anyone can ask about them in natural language.
-- **AI cost is known per reading:** about **$0.04 per gauge** at list price (GPT-5.5 via Unity AI Gateway; `evidence/07_gateway.md`).
-- **Estimated value:** `[TBD: hours of manual rounds/transcription removed per site per year × loaded cost; vendor cost avoided per image]`
+**Value model for an illustrative site** (500 gauges photographed twice a day = 365,000 readings a year; the assumptions are stated so they can be replaced with a customer's own numbers; worked in `deck/build_deck.py`, slide "Where the value comes from"):
+
+- **~4,900 hours a year back:** at 1 minute to transcribe or re-check each reading, that's ~6,100 hours a year today. With people checking only the uncertain readings (target: 1 in 5), it falls to ~1,200 hours, about 3 people's time.
+- **~$15k a year in AI cost:** 365,000 photos × ~$0.04 per photo (measured tokens × GPT-5.5 list price, `evidence/07_gateway.md`). That compares with ~$180k a year at an assumed $0.50 per-image vendor fee, with no model to train or host.
+- **Earlier warnings:** readings above a gauge's operating limit are flagged the same shift. Unplanned downtime costs a large plant ~$0.8M an hour (Siemens, *The True Cost of Downtime 2024*), so avoiding a single hour is worth ~50× the annual AI cost.
+- **Pilot targets:** one site, 8 weeks; at most 1 in 5 readings sent to review; ≥ 95% of auto-accepted readings within ±2% of full scale by weekly spot check.
+
+**What the build proves** (synthetic metadata, public photos): every photo is read once by one pipeline update (under 3 minutes for a 30-photo round, `evidence/01_pipeline_run.md`); uncertain, unreadable and unexpectedly high readings go to a reviewer, and corrections flow back to Delta and Genie (`evidence/03_writeback.md`); every model call is attributed and costed (`evidence/07_gateway.md`).
 
 ## How it works: one integrated data journey
 
