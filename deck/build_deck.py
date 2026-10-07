@@ -2,7 +2,7 @@
 exported from "[BRAND TEMPLATE] Databricks Corporate Slide 2025"): DM Sans, dark teal + Databricks red, brand layouts.
 
 Usage:  python deck/build_deck.py      (requires python-pptx)
-Numbers shown as [TBD] still need to be filled in from the impact model.
+Numbers shown as [TBD] still need to be filled in from the impact model; measured numbers come from evidence/.
 """
 import pathlib
 
@@ -63,6 +63,12 @@ def drop(slide, idx):
 
 def notes(slide, text):
     slide.notes_slide.notes_text_frame.text = text
+
+
+def source_line(slide, text, top=6.78):
+    """Small source / footnote line above the slide footer."""
+    tb = slide.shapes.add_textbox(Inches(0.83), Inches(top), Inches(11.66), Inches(0.3))
+    _text(tb.text_frame, [[(text, GREY, False)]], 9, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP)
 
 
 # ---------- drawing helpers (architecture / flow diagrams) ----------
@@ -167,10 +173,11 @@ class Canvas:
 # ---------- slides ----------
 def slide_title(prs):
     s = new_slide(prs, L_TITLE)
-    set_text(s, 0, "Pressure Gauge Reader")
-    set_text(s, 1, "AI-assisted gauge reading for refinery operator rounds")
-    set_text(s, 2, "Refinery operator rounds  |  October 2026")
-    notes(s, "Open with the customer and the business persona: operations leadership at a refinery running robot inspection rounds.")
+    set_text(s, 0, "Northbay Energy Gauge Reader")
+    set_text(s, 1, "Robot inspection rounds, read by AI, checked by people")
+    set_text(s, 2, "Refinery and terminal  |  October 2026")
+    notes(s, "Northbay Energy is a fictional operator (one refinery, one terminal) built on synthetic metadata and publicly licensed gauge photos. "
+             "Open with the business persona: operations leadership running robot inspection rounds.")
 
 
 def slide_outcome_statement(prs):
@@ -180,18 +187,111 @@ def slide_outcome_statement(prs):
     notes(s, "Lead with the outcome for the executive sponsor.")
 
 
+def slide_problem(prs):
+    s = new_slide(prs, L_3CARDS)
+    set_text(s, 0, "Why Northbay needs this")
+    set_text(s, 7, "Robots photograph every gauge — trusted readings are the bottleneck")
+    for hdr, body, (ih, ib) in [
+        ("Analog gauges are here to stay", [
+            "The vast majority of plant gauges are still analog¹",
+            "Swapping each for a transmitter means hot work, cabling and hazardous-area certification",
+            "So the reading still has to come from a person, or a photo",
+        ], (4, 1)),
+        ("A photo is not a reading", [
+            "Rounds produce thousands of photos a month",
+            "Glare, dirt, rain and steep angles defeat simple vision models¹",
+            "Third-party readings still get re-checked by hand, outside the data platform",
+        ], (5, 2)),
+        ("Late readings cost money", [
+            "An out-of-range pressure found at the next manual round is a missed early warning",
+            "Unplanned downtime costs the world's 500 largest companies ~$1.4tn a year, 11% of revenue²",
+        ], (6, 3)),
+    ]:
+        set_text(s, ih, hdr)
+        set_bullets(s, ib, body, size=15)
+    source_line(s, "¹ Reitsma et al., “Under pressure: learning-based analog gauge reading in the wild”, ETH Zurich, ICRA 2024.   "
+                   "² Siemens, The True Cost of Downtime 2024.")
+    notes(s, "Business context first. Analog gauges persist because brownfield retrofits are expensive and slow; robots solve the walking, not the reading. "
+             "The ICRA paper lists reflections, dirt, mounting angles and the variety of dial designs as why gauge reading is hard for computer vision. "
+             "Siemens: an average large plant still loses 27 hours a month to unplanned downtime.")
+
+
+def slide_heard(prs):
+    s = new_slide(prs, L_BASIC)
+    set_text(s, 0, "What we hear from energy operators")
+    set_text(s, 2, "Patterns from robot inspection programmes, and our answer to each")
+    body = ph(s, 1)
+    left, top, width = body.left, body.top, body.width
+    drop(s, 1)
+    rows = [
+        ("“Accuracy comes first — a wrong reading is worse than a late one.”",
+         "Every reading carries a confidence score; low-confidence, unreadable and unexpectedly high readings always go to a person"),
+        ("“We pay a vendor per image, and still check its readings by hand.”",
+         "Readings run inside the platform at a known cost per reading (~$0.04), with every correction audited"),
+        ("“Photos are taken in fog, rain and glare, on dirty dials.”",
+         "The model reports image issues (glare, blur, angle, dirt) so reviewers see why a reading was flagged"),
+        ("“We want to own the capability, not rent a black box.”",
+         "A governed foundation model in Unity Catalog: no training data, swap models through Unity AI Gateway"),
+        ("“Next: spot rust and leaks, and trends across rounds.”",
+         "The same pipeline extends to condition findings and per-gauge trends, feeding maintenance work orders"),
+    ]
+    tbl = s.shapes.add_table(len(rows) + 1, 2, left, top - Inches(0.25), width, Inches(4.4)).table
+    tbl.columns[0].width = int(width * 0.46)
+    tbl.columns[1].width = width - tbl.columns[0].width
+    for c, h in enumerate(("What operators tell us", "How Northbay's Gauge Reader answers it")):
+        cell = tbl.cell(0, c)
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = NAVY
+        _text(cell.text_frame, [[(h, RGBColor(0xFF, 0xFF, 0xFF), True)]], 14, align=PP_ALIGN.LEFT)
+    for r, (heard, answer) in enumerate(rows, start=1):
+        for c, (txt, color, italic) in enumerate(((heard, NAVY, True), (answer, NAVY, False))):
+            cell = tbl.cell(r, c)
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = RGBColor(0xF4, 0xF6, 0xF7) if r % 2 else RGBColor(0xFF, 0xFF, 0xFF)
+            _text(cell.text_frame, [[(txt, color, False)]], 13, align=PP_ALIGN.LEFT)
+            for p in cell.text_frame.paragraphs:
+                for run in p.runs:
+                    run.font.italic = italic
+    notes(s, "Generalised from robot gauge-reading programmes at energy operators (no customer names). "
+             "Use this slide to show discovery skills: each answer maps to something visible in the demo.")
+
+
+def slide_why_now(prs):
+    s = new_slide(prs, L_3CARDS)
+    set_text(s, 0, "Why now")
+    set_text(s, 7, "The three pieces that were missing are now in place")
+    for hdr, body, (ih, ib) in [
+        ("Robots are already on site", [
+            "Legged robots and drones run routine rounds in hazardous areas",
+            "Inspection robots already capture images at scale: 120,000+ inspections analysed a month by one vendor alone³",
+        ], (4, 1)),
+        ("Vision models read dials", [
+            "Foundation vision models read a dial with no labelled data or training",
+            "They also say how sure they are, so people only check the uncertain ones",
+        ], (5, 2)),
+        ("Governed, at a known cost", [
+            "One governed platform from photo to answer: Lakeflow, Unity Catalog, Lakebase, Genie",
+            "Every model call logged and costed: ~$0.04 per reading at list price",
+        ], (6, 3)),
+    ]:
+        set_text(s, ih, hdr)
+        set_bullets(s, ib, body, size=15)
+    source_line(s, "³ ANYbotics, anybotics.com (vendor-reported figure).   Cost per reading: build run, GPT-5.5 via Unity AI Gateway (evidence/07_gateway.md).")
+
+
 def slide_outcome(prs):
     s = new_slide(prs, L_3CARDS)
     set_text(s, 0, "What changes for operations")
-    set_text(s, 7, "Robots already photograph the gauges — now every reading is trusted")
+    set_text(s, 7, "Measured on the build round: 30 gauges, 2 sites")
     for hdr, body, (ih, ib) in [
-        ("[TBD] hrs / week", ["Manual gauge transcription removed per site", "Readings no longer outsourced to a third-party vendor"], (4, 1)),
-        ("< 5 minutes", ["From robot photo to a trusted reading in the review app", "Excursions surfaced the same shift"], (5, 2)),
-        ("100% checked", ["Every low-confidence, unreadable or unexpectedly high reading goes to a human", "Every correction audited"], (6, 3)),
+        ("67% need no one", ["20 of 30 readings read and accepted by AI", "Reviewers check 10, not 30 — no manual transcription"], (4, 1)),
+        ("< 3 minutes", ["One pipeline run read the whole round, each photo once", "Excursions surfaced the same shift"], (5, 2)),
+        ("~$0.04 per reading", ["AI cost at list price, every call attributed", "100% of uncertain or unexpectedly high readings checked by a person"], (6, 3)),
     ]:
         set_text(s, ih, hdr)
         set_bullets(s, ib, body)
-    notes(s, "Replace [TBD] with the impact model: rounds/day x gauges x minutes x loaded cost. '< 5 minutes' is from the build run (~4 minutes for 30 images).")
+    notes(s, "Numbers from the build run (evidence/04_readings_summary.md, 01_pipeline_run.md, 07_gateway.md). "
+             "Still to model with the customer: hours of manual rounds removed per site x loaded cost, and vendor cost per image avoided.")
 
 
 def slide_personas(prs):
@@ -201,15 +301,15 @@ def slide_personas(prs):
     set_text(s, 3, "Executive sponsor — VP Operations / HSE")
     set_bullets(s, 1, [
         "Fewer people in hazardous areas for routine rounds: [TBD] exposure hours avoided per year",
-        "Vendor dependency removed: [TBD] cost per image today vs. pay-per-token on the platform",
+        "Vendor dependency removed: ~$0.04 per reading on the platform vs. [TBD] per image today",
         "Unexpectedly high pressures surfaced the same shift, not at the next manual round",
-    ])
+    ], size=16)
     set_text(s, 4, "Domain owner — Reliability / Maintenance lead")
     set_bullets(s, 2, [
         "One review queue, sorted by risk: low confidence, unreadable, unexpectedly high",
         "Every correction audited (who, when, why) and fed back to the lakehouse",
         "Ask in plain English: “Are any pressure readings unexpectedly high?”",
-    ])
+    ], size=16)
     notes(s, "Frame value for both personas the AI roleplay will play: the business stakeholder and the technical/domain stakeholder.")
 
 
@@ -282,15 +382,16 @@ def slide_demo(prs):
     steps = [
         ("1  Land", "30 gauge photos and the round's metadata arrive in the raw volume"),
         ("2  Read", "The pipeline reads every dial once: value, unit, confidence, image issues"),
-        ("3  Triage", "Review queue: readings needing a human, unexpectedly high ones, one unreadable dial"),
+        ("3  Triage", "67% need no one; the queue shows the readings that need a person"),
         ("4  Correct", "A reviewer fixes a misread needle (5.0 → 1.0 bar) with a reason"),
-        ("5  Ask", "“Which readings have needed human intervention?” — Genie answers with SQL"),
+        ("5  Ask", "“Which locations have the most low-confidence readings?” — Genie answers with SQL"),
+        ("6  Trust", "AI model & usage: cost per reading, confidence vs threshold, correction rate"),
     ]
     for i, (head, body) in enumerate(steps):
-        x = 0.0 + i * 1.98
-        c.box(x, 0.2, 1.78, 1.9, head, body, size=12)
+        x = 0.0 + i * 1.65
+        c.box(x, 0.2, 1.48, 1.9, head, body, size=11)
         if i < len(steps) - 1:
-            c.arrow(x + 1.78, 1.15, x + 1.98, 1.15)
+            c.arrow(x + 1.48, 1.15, x + 1.65, 1.15)
     c.label(0.0, 2.45, 9.7, 0.4, "Everything shown runs on synthetic metadata and publicly licensed gauge photos", size=9, color=GREY, align=PP_ALIGN.LEFT)
     notes(s, "Keep the live demo under 8 minutes. Have the PI-3102 correction ready as the human-in-the-loop moment.")
 
@@ -304,8 +405,9 @@ def slide_trust(prs):
                                "Decisions are appended, never overwritten", "Human correction rate tracked as live accuracy"], (4, 1)),
         ("Unity Catalog", ["Analysts see the gold table only; the app reads images read-only",
                            "Lineage from raw image to the answer in Genie", "Genie runs with the user's own permissions"], (5, 2)),
-        ("Unity AI Gateway", ["Every model call attributed: requester, tokens, latency, status",
-                              "Model access governed by UC EXECUTE", "Swap or fall back models without pipeline changes"], (6, 3)),
+        ("Unity AI Gateway", ["Every model call attributed: requester, tokens, status",
+                              "Cost per reading shown in the app (~$0.04 at list price)",
+                              "Model access governed by UC EXECUTE; swap models without pipeline changes"], (6, 3)),
     ]:
         set_text(s, ih, hdr)
         set_bullets(s, ib, items)
@@ -333,6 +435,7 @@ def slide_next(prs):
         "Connect the robot fleet's image export to the raw volume (file-arrival trigger in place)",
         "Load real gauge tags and operating limits from the asset register",
         "Alert on unexpectedly high readings into the maintenance work-order system",
+        "Extend the same pipeline to condition findings (rust, leaks) and per-gauge trends across rounds",
         "Promote with Declarative Automation Bundles (dev → prod) and named reviewer / analyst groups",
     ], size=16)
     set_bullets(s, 2, [
@@ -356,7 +459,7 @@ def main():
     for sldId in list(sldIdLst):
         prs.part.drop_rel(sldId.rId)
         sldIdLst.remove(sldId)
-    for build in (slide_title, slide_outcome_statement, slide_outcome, slide_personas, slide_architecture,
+    for build in (slide_title, slide_outcome_statement, slide_problem, slide_heard, slide_why_now, slide_outcome, slide_personas, slide_architecture,
                   slide_demo, slide_trust, slide_decisions, slide_next, slide_close):
         build(prs)
     prs.save(OUT)
