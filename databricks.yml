@@ -15,6 +15,9 @@ variables:
   serving_sync_pipeline_id:
     description: Pipeline behind the Lakebase synced table (created by `databricks postgres create-synced-table`, see src/lakebase/)
     default: fd47dc64-94cd-42b2-a4c1-efa4eeafd7b2
+  usage_sync_pipeline_id:
+    description: Pipeline of the Lakebase synced table vlm_usage_serving (created by `databricks postgres create-synced-table`).
+    default: bb403254-b924-4922-a088-a83ee88bccab
 
 targets:
   dev:

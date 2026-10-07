@@ -1,0 +1,11 @@
+{
+  "spec": {
+    "source_table_full_name": "serverless_stable_kx6lwb_catalog.pressure_gauge.gold_vlm_usage_daily",
+    "primary_key_columns": ["usage_date", "model_service"],
+    "scheduling_policy": "SNAPSHOT",
+    "branch": "projects/pressure-gauge-reader/branches/production",
+    "postgres_database": "databricks_postgres",
+    "create_database_objects_if_missing": true,
+    "new_pipeline_spec": {"storage_catalog": "serverless_stable_kx6lwb_catalog", "storage_schema": "pressure_gauge"}
+  }
+}

@@ -15,5 +15,6 @@ databricks psql --project pressure-gauge-reader -- -d databricks_postgres -f src
 databricks postgres create-cdf-config projects/pressure-gauge-reader/branches/production/databases/databricks-postgres \
   serverless_stable_kx6lwb_catalog pressure_gauge review --cdf-config-id review_overrides
 databricks postgres create-synced-table serverless_stable_kx6lwb_catalog.pressure_gauge.gauge_readings_serving --json @synced_table.json
+databricks postgres create-synced-table serverless_stable_kx6lwb_catalog.pressure_gauge.vlm_usage_serving --json @synced_usage_table.json
 databricks psql --project pressure-gauge-reader -- -d databricks_postgres -v app_sp=<SP_CLIENT_ID> -f src/lakebase/02_app_grants.sql
 ```
