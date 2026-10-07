@@ -1,4 +1,5 @@
 import { createApp, files, genie, lakebase, server } from '@databricks/appkit';
+import { setupModelUsageRoutes } from './routes/modelUsage';
 import { setupReadingRoutes } from './routes/readings';
 
 createApp({
@@ -12,5 +13,6 @@ createApp({
   ],
   onPluginsReady(appkit) {
     setupReadingRoutes(appkit);
+    setupModelUsageRoutes(appkit);
   },
 }).catch(console.error);

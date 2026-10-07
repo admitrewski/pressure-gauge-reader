@@ -1,5 +1,42 @@
 @import '@databricks/appkit-ui/styles.css';
 
+/* Northbay Energy brand: deep navy (structure, primary actions) + signal teal (accents, focus, AI).
+   Status colours (success / warning / destructive) stay AppKit's semantic tokens, so the brand never
+   competes with what a reading's status means. */
+:root {
+  --brand-navy: #0b2a4a;
+  --brand-navy-foreground: #ffffff;
+  --brand-teal: #12a4a0;
+  --brand-teal-foreground: #ffffff;
+  --brand-teal-soft: #e3f5f4;
+
+  --primary: var(--brand-navy);
+  --primary-foreground: var(--brand-navy-foreground);
+  --ring: var(--brand-teal);
+  --accent: var(--brand-teal-soft);
+  --accent-foreground: var(--brand-navy);
+  --chart-1: var(--brand-navy);
+  --chart-2: var(--brand-teal);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-teal-soft: #0f3a3d;
+    --primary: #5cc8c4;
+    --primary-foreground: #06192d;
+    --accent-foreground: #e3f5f4;
+  }
+}
+
+@theme inline {
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-foreground: var(--brand-navy-foreground);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-teal-foreground: var(--brand-teal-foreground);
+  --color-brand-teal-soft: var(--brand-teal-soft);
+}
+
+/* AppKit default tokens, for reference */
 :root {
   /* --radius: 0.625rem;
   --background: oklch(1 0 0);

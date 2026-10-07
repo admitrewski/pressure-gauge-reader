@@ -5,9 +5,7 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -34,9 +32,22 @@ import {
   TabsTrigger,
   useIsMobile,
 } from '@databricks/appkit-ui/react';
-import { CheckCircle2, MessageSquareText, MousePointerClick, RefreshCw } from 'lucide-react';
+import {
+  CheckCircle2,
+  ClipboardCheck,
+  Coins,
+  MessageSquareText,
+  MousePointerClick,
+  RefreshCw,
+  TriangleAlert,
+  UserCheck,
+} from 'lucide-react';
+import { Link } from 'react-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GenieAssistant } from '../../components/GenieAssistant';
+import { KpiCard } from '../../components/KpiCard';
+import { BRAND } from '../../brand';
+import { formatUsd, totalsOf, useModelUsage } from '../model/usage';
 import { ReadingDetailPane } from './ReadingDetailPane';
 import { ConfidenceBadge, ReadingStatusBadge, ReviewStatusBadge } from './StatusBadges';
 import { formatDateTime, formatValue, imageUrl, normaliseReading, type Reading, type ReadingsResponse } from './types';
@@ -71,16 +82,46 @@ const FILTERS: Record<Filter, { label: string; test: (r: Reading) => boolean; em
   },
 };
 
-function KpiCard({ title, value, detail }: { title: string; value: string; detail: string }) {
+function shortDate(v: string | null): string {
+  if (!v) return '';
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+/** The outcome in one panel: how much of the round the AI handled, and how much is left for people. */
+function OutcomePanel({ kpis }: { kpis: Kpis }) {
+  const pct = kpis.total ? Math.round((kpis.autoAccepted / kpis.total) * 100) : 0;
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardDescription>{title}</CardDescription>
-        <CardTitle className="text-3xl tabular-nums">{value}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-xs text-muted-foreground">{detail}</CardContent>
-    </Card>
+    <div className="h-full rounded-xl bg-brand-navy text-brand-navy-foreground p-5 flex flex-col gap-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-teal">
+        Latest inspection rounds{kpis.from ? ` · ${shortDate(kpis.from)} – ${shortDate(kpis.to)}` : ''}
+      </div>
+      <div className="flex items-baseline gap-3">
+        <span className="text-5xl font-semibold tabular-nums">{pct}%</span>
+        <span className="text-base leading-snug">of gauge readings needed no one</span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
+        <div className="h-full bg-brand-teal" style={{ width: `${pct}%` }} />
+      </div>
+      <p className="text-sm text-brand-navy-foreground/80 leading-snug">
+        {kpis.autoAccepted} of {kpis.total} gauges across {kpis.sites} site{kpis.sites === 1 ? '' : 's'} read and
+        accepted by AI. Reviewers check {kpis.total - kpis.autoAccepted}, not {kpis.total} — no manual transcription.
+      </p>
+    </div>
   );
+}
+
+interface Kpis {
+  total: number;
+  pending: number;
+  high: number;
+  autoAccepted: number;
+  reviewed: number;
+  corrected: number;
+  correctionRate: string;
+  sites: number;
+  from: string | null;
+  to: string | null;
 }
 
 const SEGMENTS: { key: Reading['review_status']; label: string; className: string }[] = [
@@ -127,8 +168,8 @@ function GenieSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
         <SheetHeader>
           <SheetTitle>Ask about these readings</SheetTitle>
           <SheetDescription>
-            AI-generated answers from the governed inspection data, run with your own Databricks permissions. Expand
-            the SQL on each answer and verify before acting.
+            AI-generated answers from the governed inspection data, run with your own Databricks permissions. Expand the
+            SQL on each answer and verify before acting.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 min-h-0 border rounded-lg overflow-hidden mx-4 mb-4">
@@ -177,9 +218,13 @@ export function ReviewPage() {
   // Selection falls back to the first visible reading, so the pane is never empty while there is work.
   const selected = visible.find((r) => r.image_id === selectedId) ?? visible[0] ?? null;
 
-  const kpis = useMemo(() => {
+  const kpis = useMemo((): Kpis => {
     const reviewed = readings.filter((r) => ['confirmed', 'overridden', 'marked_unreadable'].includes(r.review_status));
     const corrected = readings.filter((r) => r.is_human_corrected).length;
+    const captured = readings
+      .map((r) => r.captured_at)
+      .filter((v): v is string => Boolean(v))
+      .sort();
     return {
       total: readings.length,
       pending: readings.filter((r) => r.needs_review).length,
@@ -188,8 +233,13 @@ export function ReviewPage() {
       reviewed: reviewed.length,
       corrected,
       correctionRate: reviewed.length ? `${Math.round((corrected / reviewed.length) * 100)}%` : '—',
+      sites: new Set(readings.map((r) => r.site).filter(Boolean)).size,
+      from: captured[0] ?? null,
+      to: captured.at(-1) ?? null,
     };
   }, [readings]);
+  const usage = useModelUsage();
+  const usageTotals = useMemo(() => (usage.days ? totalsOf(usage.days) : null), [usage.days]);
 
   // ↑/↓ (or K/J) to move through the queue.
   useEffect(() => {
@@ -349,11 +399,7 @@ export function ReviewPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Gauge reading review</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {kpis.pending > 0
-              ? `${kpis.pending} reading${kpis.pending === 1 ? '' : 's'} from the latest inspection rounds need a human check.`
-              : 'All readings from the latest inspection rounds are accepted or reviewed.'}
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{BRAND.outcome}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
@@ -378,30 +424,48 @@ export function ReviewPage() {
         </Alert>
       )}
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 xl:grid-cols-6">
         {loading && !data ? (
-          ['k1', 'k2', 'k3', 'k4'].map((k) => <Skeleton key={k} className="h-28" />)
+          ['k0', 'k1', 'k2', 'k3', 'k4'].map((k, i) => (
+            <Skeleton key={k} className={`h-40 ${i === 0 ? 'col-span-2' : ''}`} />
+          ))
         ) : (
           <>
+            <div className="col-span-2">
+              <OutcomePanel kpis={kpis} />
+            </div>
             <KpiCard
-              title="Gauge readings"
-              value={String(kpis.total)}
-              detail={`${kpis.autoAccepted} auto-accepted by the AI`}
-            />
-            <KpiCard
-              title="Needs review"
+              icon={ClipboardCheck}
+              tone="warning"
+              title="To review"
               value={String(kpis.pending)}
               detail={`Confidence below ${Math.round(threshold * 100)}%, unreadable or unexpectedly high`}
             />
             <KpiCard
-              title="Unexpectedly high readings"
+              icon={TriangleAlert}
+              tone="destructive"
+              title="Unexpectedly high"
               value={String(kpis.high)}
-              detail="Above the gauge's normal operating limit"
+              detail="Above the gauge's normal operating limit — check before the next round"
             />
             <KpiCard
+              icon={UserCheck}
+              tone="success"
               title="Human correction rate"
               value={kpis.correctionRate}
-              detail={`${kpis.corrected} overridden of ${kpis.reviewed} reviewed`}
+              detail={`${kpis.corrected} overridden of ${kpis.reviewed} reviewed — the live accuracy check`}
+            />
+            <KpiCard
+              icon={Coins}
+              tone="brand"
+              title="AI cost per gauge"
+              value={usageTotals ? formatUsd(usageTotals.costPerImage, 3) : '—'}
+              detail="GPT-5.5 via Unity AI Gateway, at list price"
+              footer={
+                <Link to="/model" className="font-medium text-brand-teal hover:underline">
+                  Model & usage →
+                </Link>
+              }
             />
           </>
         )}
