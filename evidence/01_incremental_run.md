@@ -1,6 +1,6 @@
 # Auto Loader incremental processing
 
-_Captured 2026-10-06 13:38 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## bronze_gauge_readings_ai output rows per completed update
 
@@ -9,6 +9,8 @@ _Captured 2026-10-06 13:38 UTC from the build workspace by `src/setup/capture_ev
 | 177c2109-d3f2-49aa-846d-8b434c3b6861 | bronze_gauge_readings_ai | 30 |
 | ae33fd66-cdfd-473a-ba61-25d2bdc260dd | bronze_gauge_readings_ai | 0 |
 | 7405873e-5965-4af4-a70c-1a0a1f53d22d | bronze_gauge_readings_ai | 0 |
+| 0e92267b-543a-470f-8d49-f5404194b92b | bronze_gauge_readings_ai | 0 |
+| 9abadc0b-ea04-4778-a269-9ccfcc0a05bf | bronze_gauge_readings_ai | 0 |
 
 ## Vision-model calls recorded by Unity AI Gateway (image-sized requests)
 

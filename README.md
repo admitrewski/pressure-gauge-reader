@@ -1,6 +1,8 @@
-# Pressure Gauge Reader
+# Northbay Energy Gauge Reader
 
 **AI-assisted gauge reading for refinery operator rounds, with a human in the loop.**
+
+*Northbay Energy is a fictional operator (one refinery, one terminal); all metadata is synthetic and the gauge photos are publicly licensed.*
 
 ## The problem
 
@@ -8,10 +10,11 @@ Refineries and process plants run daily operator rounds to read hundreds of anal
 
 ## The outcome
 
-<!-- TODO: quantify with the impact model in deck/ — every number below must be backed by a query in evidence/ -->
-- **Readings in minutes, not days:** every gauge image is read automatically when it lands.
-- **Humans only review what matters:** low-confidence readings are routed to a reviewer, and corrections are audited.
-- **Excursions surfaced immediately:** readings above a gauge's normal operating range are flagged, and anyone can ask about them in natural language.
+- **Most readings need no one:** in the build round, **20 of 30 gauges (67%) were read and accepted by AI**; reviewers checked 10, not 30 (`evidence/04_readings_summary.md`).
+- **Readings in minutes, not days:** the round's 30 photos were read in one pipeline update of under 3 minutes, once each (`evidence/01_pipeline_run.md`, `evidence/01_incremental_run.md`).
+- **Humans only review what matters:** confidence below 70%, unreadable dials and unexpectedly high readings go to a reviewer; every correction is audited and flows back to Delta.
+- **Excursions surfaced the same shift:** readings above a gauge's normal operating limit are flagged (4 in the build round), and anyone can ask about them in natural language.
+- **AI cost is known per reading:** about **$0.04 per gauge** at list price (GPT-5.5 via Unity AI Gateway; `evidence/07_gateway.md`).
 - **Estimated value:** `[TBD: hours of manual rounds/transcription removed per site per year × loaded cost; vendor cost avoided per image]`
 
 ## How it works: one integrated data journey
@@ -37,8 +40,8 @@ Genie Agent on gold: "Which readings needed human intervention?" "Are any pressu
 | Serve | Lakebase: synced table + native overrides table, Lakehouse Sync | `src/lakebase/` |
 | Intelligence | `ai_query` with a vision model: reading, unit, scale, confidence | `src/pipeline/` |
 | Natural-language queries | Genie Agent | `src/genie/` |
-| Business app | Databricks App | `app/` |
-| AI observability and control | Unity AI Gateway: access, usage/cost, rate limits, budgets, request logging | `src/gateway/` |
+| Business app | Databricks App: review queue with outcome KPIs, *AI model & usage* page, Genie side panel | `app/` |
+| AI observability and control | Unity AI Gateway: access, usage/cost (`gold_vlm_usage_daily` → app), rate limits, budgets, request logging | `src/gateway/` |
 
 ## Repository layout
 

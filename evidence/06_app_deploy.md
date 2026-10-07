@@ -1,6 +1,6 @@
 # Databricks App deployment
 
-_Captured 2026-10-06 13:40 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 12:34 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## App status
 
@@ -17,12 +17,12 @@ _Captured 2026-10-06 13:40 UTC from the build workspace by `src/setup/capture_ev
   "state": "ACTIVE"
  },
  "active_deployment": {
-  "deployment_id": "01f1c187a064176889f8b0011eec8d90",
+  "deployment_id": "01f1c24a91b6169b942348f610cd1cbd",
   "status": {
    "message": "App started successfully",
    "state": "SUCCEEDED"
   },
-  "create_time": "2026-10-06T13:12:48Z"
+  "create_time": "2026-10-07T12:28:15Z"
  },
  "resources": [
   {

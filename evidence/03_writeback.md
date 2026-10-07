@@ -1,6 +1,6 @@
 # Human review write-back round trip
 
-_Captured 2026-10-06 13:39 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## 1. App writes to the native Lakebase table `review.reading_overrides`
 

@@ -1,6 +1,6 @@
 # Vision model structured outputs (ai_query via Unity AI Gateway)
 
-_Captured 2026-10-06 13:39 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## Raw responses (first 6 images)
 

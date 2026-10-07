@@ -1,6 +1,6 @@
 # Gauge readings: all images
 
-_Captured 2026-10-06 13:39 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## Summary
 

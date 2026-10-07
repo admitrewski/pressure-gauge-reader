@@ -1,12 +1,11 @@
 # Unity Catalog governance: explicit grants
 
-_Captured 2026-10-06 13:39 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## SHOW GRANTS ON CATALOG serverless_stable_kx6lwb_catalog
 
 | Principal | ActionType | ObjectType | ObjectKey |
 |---|---|---|---|
-| e92b6294-00bc-419c-8a86-a72ab336493e | USE CATALOG | CATALOG | serverless_stable_kx6lwb_catalog |
 | 5f21c708-c49d-4e43-9341-9937baa0ad13 | BROWSE | CATALOG | serverless_stable_kx6lwb_catalog |
 | 5f21c708-c49d-4e43-9341-9937baa0ad13 | USE CATALOG | CATALOG | serverless_stable_kx6lwb_catalog |
 | 2446f043-fcb8-43d4-b58f-f0c1135ce2f2 | USE CATALOG | CATALOG | serverless_stable_kx6lwb_catalog |
@@ -52,6 +51,8 @@ _Captured 2026-10-06 13:39 UTC from the build workspace by `src/setup/capture_ev
 |---|---|---|---|
 | 2446f043-fcb8-43d4-b58f-f0c1135ce2f2 | pressure_gauge | gauge_readings_serving | SELECT |
 | alex.dmitrewski@databricks.com | pressure_gauge | gauge_readings_serving | DELETE, SELECT, TRUNCATE |
+| 2446f043-fcb8-43d4-b58f-f0c1135ce2f2 | pressure_gauge | vlm_usage_serving | SELECT |
+| alex.dmitrewski@databricks.com | pressure_gauge | vlm_usage_serving | DELETE, SELECT, TRUNCATE |
 | 2446f043-fcb8-43d4-b58f-f0c1135ce2f2 | review | reading_overrides | INSERT, SELECT |
 | alex.dmitrewski@databricks.com | review | reading_overrides | DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE |
 | databricks_gateway | review | reading_overrides | SELECT |

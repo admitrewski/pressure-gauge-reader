@@ -1,6 +1,6 @@
 # Lineage (system.access.table_lineage)
 
-_Captured 2026-10-06 13:39 UTC from the build workspace by `src/setup/capture_evidence.py`._
+_Captured 2026-10-07 12:32 UTC from the build workspace by `src/setup/capture_evidence.py`._
 
 ## Edges touching the pressure_gauge schema
 
@@ -11,5 +11,8 @@ _Captured 2026-10-06 13:39 UTC from the build workspace by `src/setup/capture_ev
 | serverless_stable_kx6lwb_catalog.pressure_gauge.bronze_gauge_metadata | serverless_stable_kx6lwb_catalog.pressure_gauge.gold_gauge_readings_final | MATERIALIZED_VIEW |
 | serverless_stable_kx6lwb_catalog.pressure_gauge.lb_reading_overrides_history | serverless_stable_kx6lwb_catalog.pressure_gauge.gold_gauge_readings_final | MATERIALIZED_VIEW |
 | serverless_stable_kx6lwb_catalog.pressure_gauge.silver_gauge_readings | serverless_stable_kx6lwb_catalog.pressure_gauge.gold_gauge_readings_final | MATERIALIZED_VIEW |
+| serverless_stable_kx6lwb_catalog.pressure_gauge.bronze_gauge_readings_ai | serverless_stable_kx6lwb_catalog.pressure_gauge.gold_vlm_usage_daily | MATERIALIZED_VIEW |
+| system.ai_gateway.usage | serverless_stable_kx6lwb_catalog.pressure_gauge.gold_vlm_usage_daily | MATERIALIZED_VIEW |
+| system.billing.list_prices | serverless_stable_kx6lwb_catalog.pressure_gauge.gold_vlm_usage_daily | MATERIALIZED_VIEW |
 | serverless_stable_kx6lwb_catalog.pressure_gauge.bronze_gauge_readings_ai | serverless_stable_kx6lwb_catalog.pressure_gauge.quarantine_vlm_errors | STREAMING_TABLE |
 | serverless_stable_kx6lwb_catalog.pressure_gauge.bronze_gauge_readings_ai | serverless_stable_kx6lwb_catalog.pressure_gauge.silver_gauge_readings | STREAMING_TABLE |

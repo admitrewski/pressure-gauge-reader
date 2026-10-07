@@ -86,8 +86,13 @@ def main():
         FROM event_log('{PIPELINE_ID}') WHERE event_type = 'flow_progress' AND origin.flow_name IS NOT NULL
           AND origin.update_id IN (SELECT origin.update_id FROM event_log('{PIPELINE_ID}') WHERE event_type = 'update_progress' AND details:update_progress.state = 'COMPLETED')
         GROUP BY 1, 2 ORDER BY MIN(timestamp), 2""", p)
+    dur = sql(f"""SELECT origin.update_id, MIN(timestamp) AS started_utc, MAX(timestamp) AS finished_utc,
+          timestampdiff(SECOND, MIN(timestamp), MAX(timestamp)) AS duration_s,
+          SUM(CASE WHEN origin.flow_name LIKE '%bronze_gauge_readings_ai' THEN details:flow_progress.metrics.num_output_rows END) AS images_read
+        FROM event_log('{PIPELINE_ID}') GROUP BY 1 HAVING images_read > 0 ORDER BY 2""", p)
     write("01_pipeline_run.md", "Lakeflow pipeline runs", [
         ("Pipeline updates (serverless, triggered)", md_table(["update_id", "state", "cause", "full_refresh", "created_utc"], upd_rows)),
+        ("Time to read a round: updates that read new photos (event log)", md_table(*dur)),
         ("Rows per dataset", md_table(*counts)),
         ("Flow results per update (event log)", md_table(*flows)),
     ])
@@ -201,8 +206,15 @@ def main():
           ROUND(AVG(latency_ms) / 1000, 1) AS avg_latency_s
         FROM system.ai_gateway.usage WHERE endpoint_name = 'system.ai.gpt-5-5' AND requester = current_user()
           AND event_time >= current_date() - INTERVAL 7 DAYS GROUP BY ALL ORDER BY 1""", p)
+    cost = sql(f"""SELECT usage_date, model_service, requests, images_read, errors, input_tokens, output_tokens, reasoning_tokens,
+          est_input_cost_usd, est_output_cost_usd, est_cost_usd, ROUND(est_cost_usd / images_read, 4) AS est_cost_per_image_usd, usd_per_dbu
+        FROM {S}.gold_vlm_usage_daily ORDER BY usage_date""", p)
     write("07_gateway.md", "Unity AI Gateway: observability and control of the vision model", [
         ("Usage of `system.ai.gpt-5-5` by the pipeline (system.ai_gateway.usage)", md_table(*use)),
+        ("Daily usage and list-price cost estimate (gold_vlm_usage_daily, shown on the app's *AI model & usage* page)", md_table(*cost)),
+        ("How the cost is estimated", "Tokens from Unity AI Gateway × published GPT-5.5 pay-per-token rates (71.429 DBU per 1M input, 7.143 per 1M cached input, "
+                                      "428.571 per 1M output tokens) × the SKU's current list price from `system.billing.list_prices`. "
+                                      "Requests can exceed images read when test calls were made (DECISIONS D21)."),
         ("Control", "- Access: `EXECUTE` on `system.ai` (UC) governs who can call the model service.\n"
                     "- The pipeline calls the model by its UC service name, so every gauge reading is attributable (requester, tokens, latency, status).\n"
                     "- Finding: batch `ai_query` accepts `system.ai.*` services but not a project-owned model service (404), so per-workload rate limits would be configured on the platform side."),
